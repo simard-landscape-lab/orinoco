@@ -1,3 +1,7 @@
+# Deprecated Folder
+_deprecated/
+
+
 # OS Files
 .DS_Store
 .DS_Store?
@@ -51,6 +55,8 @@ __pycache__/
 *.kmz
 *.jpg
 *.wld
+*.geojson
+
 # Allow tif in data to be added
 !**/data/*/*.tif
 
