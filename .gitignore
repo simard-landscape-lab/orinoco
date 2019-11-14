@@ -23,6 +23,9 @@ _deprecated/
 # Jupyter files
 *.ipynb_checkpoints
 
+# Python build files
+build/
+
 # Rope Files
 .ropeproject/
 
@@ -58,7 +61,7 @@ __pycache__/
 *.geojson
 
 # Allow tif in data to be added
-!**/data/*/*.tif
+!**/data/*.tif
 
 # Log files
 *.log
