@@ -61,10 +61,17 @@ __pycache__/
 *.geojson
 
 # Allow tif in data to be added
-!**/data/*.tif
+!**/data/**
+
+# Plots
+*.png
 
 # Log files
 *.log
 
 # Pickle Data
 *.pkl
+
+
+# Old Notebooks
+notebooks/deprecated/

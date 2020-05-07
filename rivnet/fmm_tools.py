@@ -2,7 +2,7 @@ from skimage import measure
 import numpy.ma as ma
 import skfmm
 import numpy as np
-from .nd_tools import filter_binary_array_by_min_size
+from .nd_tools import filter_binary_array_by_min_size, get_features_from_array
 
 
 def get_distance_along_river_using_fmm(water_mask: np.array,
@@ -38,8 +38,16 @@ def get_distance_along_river_using_fmm(water_mask: np.array,
 def get_distance_segments(distance: np.array, pixel_step: int, dx: float, dy: float):
     threshold = min(dx, dy) * pixel_step
     dist_threshold = (distance / threshold)
+    # We ensure that our background is 0
     dist_temp = dist_threshold + 1
+    # We assume that the 0 label is background
     dist_temp[np.isnan(dist_threshold)] = 0
     dist_temp = dist_temp.astype(np.int32)
     labels = measure.label(dist_temp, background=0, neighbors=8, connectivity=8).astype(np.int32)
-    return labels
+
+    # Obtain labels adjacent to interface
+    distance_pseudo_features = get_features_from_array(labels, dist_threshold).ravel()
+    # weird indexing to avoid warning due to np.nan which occurs at 0.
+    interface_adjacent_labels = np.argwhere(distance_pseudo_features[1:] <= 1) + 1
+
+    return labels, interface_adjacent_labels

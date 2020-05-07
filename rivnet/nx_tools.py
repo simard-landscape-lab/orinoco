@@ -4,6 +4,27 @@ from shapely.geometry import LineString, Point
 import pandas as pd
 import scipy.ndimage as nd
 import numpy as np
+from typing import Callable
+from tqdm import tqdm
+
+
+def get_graph_from_edge_dataframe(edge_df, directed=True):
+
+    G = nx.DiGraph() if directed else nx.Graph()
+
+    geometry = edge_df.geometry
+    head = geometry.map(lambda geo: geo.coords[0])
+    tail = geometry.map(lambda geo: geo.coords[1])
+
+    edge_df['head'] = head.values
+    edge_df['tail'] = tail.values
+
+    edge_data = edge_df.set_index(['head', 'tail']).to_dict('index')
+
+    G.add_edges_from(edge_data.keys())
+    nx.set_edge_attributes(G, edge_data)
+
+    return G
 
 
 def get_RAG_neighbors(label_array):
@@ -15,7 +36,7 @@ def get_RAG_neighbors(label_array):
     labels_unique = np.unique(label_array)
     neighbors = {}
 
-    for k, label in enumerate(labels_unique):
+    for k, label in tqdm(enumerate(labels_unique), total=len(labels_unique), desc='rag neighbors'):
 
         if label == 0:
             continue
@@ -51,38 +72,33 @@ def remove_tuples_from_df(df):
     return df
 
 
-def export_edges_to_geodataframe(G, directed_info=False):
+def export_edges_to_geodataframe(G: nx.classes.graph.Graph, profile: dict, directed_info=False):
     edge_data = list(G.edges(data=True))
     edge_dict = {(e[0], e[1]): e[2] for e in edge_data}
     if directed_info:
-        edge_records = [{**{'head': edge[0], 'tail': edge[1]},
+        edge_records = [{**{'head': list(edge[0]), 'tail': list(edge[1])},
                          **edge_dict[edge]} for edge in edge_dict.keys()]
     else:
         edge_records = [{**edge_dict[edge]} for edge in edge_dict.keys()]
 
     geometry = [LineString([edge[0], edge[1]]) for edge in edge_dict.keys()]
+    epsg_code = str(profile['crs']).lower()
     df_geo = gpd.GeoDataFrame(edge_records,
-                              geometry=geometry, crs={'init': 'epsg:4326'})
+                              geometry=geometry, crs={'init': epsg_code})
     return df_geo
 
 
-def export_nodes_to_geodataframe(G):
+def export_nodes_to_geodataframe(G: nx.classes.graph.Graph, profile: dict):
     node_attributes = dict(G.nodes(data=True))
     nodes = list(node_attributes.keys())
     node_data = [node_attributes[node] for node in nodes]
     geometry = [Point(node) for node in nodes]
-    df_geo = gpd.GeoDataFrame(node_data, geometry=geometry, crs={'init': 'epsg:4326'})
+    epsg_code = str(profile['crs']).lower()
+    df_geo = gpd.GeoDataFrame(node_data, geometry=geometry, crs={'init': epsg_code})
     return df_geo
 
 
-def check_edge_set_membership(edge, edge_pairs):
-    check_1 = (edge[0], edge[1]) in edge_pairs
-    check_2 = (edge[1], edge[0]) in edge_pairs
-    membership = bool(check_1 or check_2)
-    return membership
-
-
-def dfs_line_search(G: nx.Graph, source):
+def dfs_line_search(G: nx.classes.graph.Graph, source: tuple, break_func: Callable = None):
     """Meant for a connected graph G to yeild edges in the form [edge_0, edge_1, ..., edge_n]
     so that edge_0[0] is a (juncture, source, or sink) and edge_n[1] is a (juncture, source, or sink)
     and all nodes in between have degree 2, that is unique parent and child.
@@ -111,6 +127,11 @@ def dfs_line_search(G: nx.Graph, source):
 
                 # Degree > 2
                 if nx.degree(G, child) > 2:
+                    new_edges = [(child, v) for v in G.neighbors(child) if v != parent]
+                    stack += new_edges
+                    break
+
+                if break_func is not None and break_func(child):
                     new_edges = [(child, v) for v in G.neighbors(child) if v != parent]
                     stack += new_edges
                     break

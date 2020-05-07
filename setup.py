@@ -1,6 +1,5 @@
 from distutils.core import setup
 from os import path
-import sys
 
 file_dir = path.abspath(path.dirname(__file__))
 
