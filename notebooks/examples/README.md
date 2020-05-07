@@ -43,11 +43,11 @@ We will describe some ways we have generated effective river masks from open dat
 ```./stitch -f geotiff -w -o osm_no_labels_16.tif -- 29.3745 -91.5444 29.6832 -91.0861 16 https://maps.wikimedia.org/osm/\{z\}/\{x\}/\{y\}.png```
 
 
-+ [Peckel](https://global-surface-water.appspot.com/download) - this is as "low-level" as we will get. Basically, this takes the Landsat catalog and determines water in each image. The final products are general statistics about the Landsat water occurrence. An easy way to handle the Peckel data is to download the `occurrence` rasters and select a threshold to find the percentage of pixels in the time series containing water.
++ [Peckel](https://global-surface-water.appspot.com/download) - this is a nice product providing Landsat-related information regarding the presence of water *globally*. This product is as "low-level" as we will get. The product effectively reports the number times water appeared in a pixel across the landsat catalog. The final products are general statistics related to this. An easy way to handle the Peckel data is to download the `occurrence` rasters and select a threshold to find the percentage of pixels in the time series containing water.
 
-	+ **Warning**: Because deltaic areas are lots of swamp land, there are areas in Peckel that appear as perpetually "flooded" particularly in the Mississippi. This makes it hard to determine the rough movement of water around vegetation.
+	+ **Warning**: Because deltaic areas are lots of swamp land, there are areas in Peckel that appear as perpetually "flooded" particularly in the Mississippi. This makes it hard to determine the rough movement of water around the delta.
 
-+ [GRWL](https://zenodo.org/record/1297434#.XcywsEVKjUI) - these are from Allen / Pavelsky are Peckel-derived. They too have *Global coverage*!
++ [GRWL](https://zenodo.org/record/1297434#.XcywsEVKjUI) - these products are from Allen / Pavelsky and are derived using the Peckel data. So they too have *global coverage*!
 	+ **Warning**: Tiles are in UTM and each tile has specific UTM zone.
 	+ **Warning**: The naming convention for GRWL tiles is not UTM!
 	+ **Warning**: Adjacent tiles may not overlap well in that the rivers are disconnected.

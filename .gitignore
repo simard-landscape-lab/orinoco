@@ -61,7 +61,12 @@ __pycache__/
 *.geojson
 
 # Allow tif in data to be added
-!**/data/**
+!**/data/**/*.tif
+!**/data/**/*.sbn
+!**/data/**/*.sbx
+!**/data/**/*.shp
+!**/data/**/*.shx
+!**/data/**/*.dbf
 
 # Plots
 *.png
