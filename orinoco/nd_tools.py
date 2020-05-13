@@ -120,7 +120,8 @@ def get_features_from_array(label_array: np.ndarray, data_array: np.ndarray) -> 
 
 def apply_func_to_superpixels(func,
                               labels: np.ndarray,
-                              array: np.ndarray) -> np.ndarray:
+                              array: np.ndarray,
+                              default_value=np.nan) -> np.ndarray:
     """
     This is a wrapper for `scipy.ndimage.labeled_comprehension`.
 
@@ -130,8 +131,8 @@ def apply_func_to_superpixels(func,
         raise ValueError('The array must be a 2d array')
     labels_ = labels + 1
     labels_unique = np.unique(labels_)
-    new_change_measurements = nd.labeled_comprehension(array, labels_, labels_unique, func, float, 0)
-    return new_change_measurements.reshape((-1, 1))
+    features = nd.labeled_comprehension(array, labels_, labels_unique, func, float, default_value)
+    return features.reshape((-1, 1))
 
 
 def get_superpixel_area_as_features(labels):

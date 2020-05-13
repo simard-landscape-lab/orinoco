@@ -17,12 +17,12 @@ except ImportError:
 REQUIRES = []
 
 setup(
-    name='rivnet',
+    name='orinoco',
     version='0.1dev',
 
     description='A python library for generating a river network from a water mask',
     long_description=long_description,
-    url='tobefilledout_later_githubthingy',
+    url='tobefilledoutlatergithubthingy',
 
     author='Charlie Marshak',
     author_email='charlie.z.marshak@jpl.nasa.gov',
@@ -30,7 +30,7 @@ setup(
 
     keywords='fast marching method centerlines river network',
 
-    packages=['rivnet'],  # setuptools.find_packages(exclude=['doc']),
+    packages=['orinoco'],  # setuptools.find_packages(exclude=['doc']),
 
     # Required Packages
     install_requires=REQUIRES,

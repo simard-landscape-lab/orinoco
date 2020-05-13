@@ -309,7 +309,9 @@ def direct_river_network_using_distance(G: nx.Graph,
 # Add Widths
 ######################################
 
-def add_widths_to_graph(G: nx.classes.graph.Graph, width_features: np.ndarray) -> nx.classes.graph.Graph:
+def add_width_features_to_graph(G: nx.classes.graph.Graph,
+                                width_features: np.ndarray,
+                                width_label: str = 'width_from_feature') -> nx.classes.graph.Graph:
     """Notes:
     + width_features indices should correspond to segment labels; stored as node attribute in G as "label"
     + width_features should be flattened (or `ravel()`-ed) so that they can be stored as numbers
@@ -318,9 +320,34 @@ def add_widths_to_graph(G: nx.classes.graph.Graph, width_features: np.ndarray) -
     nodes = node_data.keys()
 
     def update_node_data(node):
+        # label should correspond to the same feature
         label = node_data[node]['label']
-        node_data[node]['width'] = width_features[label]
+        node_data[node][width_label] = width_features[label]
 
     list(map(update_node_data, nodes))
     nx.set_node_attributes(G, node_data)
     return G
+
+
+def update_width_geometries(diG: nx.DiGraph, node_width_dict: dict):
+    segment_width_dict = nx.get_node_attributes(diG, 'segment_width')
+    if not segment_width_dict:
+        raise ValueError('diG must have `segment_width` attribute')
+
+    def final_width_determination(line_geometry, segment_width):
+        if line_geometry.is_empty:
+            return segment_width
+        else:
+            return line_geometry.length
+
+    diG_width_node_data = {node: {'width_m': final_width_determination(line_geo,
+                                                                       segment_width_dict[node]),
+                                  'width_m_from_geometry': line_geo.length,
+                                  'width_geo_0': line_geo.coords[0] if not line_geo.is_empty else None,
+                                  'width_geo_1': line_geo.coords[1] if not line_geo.is_empty else None
+                                  }
+                           for node, line_geo in node_width_dict.items()
+                           }
+
+    nx.set_node_attributes(diG, diG_width_node_data)
+    return diG

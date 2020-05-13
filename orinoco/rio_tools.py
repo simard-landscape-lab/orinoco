@@ -51,7 +51,7 @@ def get_4326_dx_dy(profile):
     return dx, dy
 
 
-def polygonize_array_to_shapefile(arr, profile, shape_file_dir, label_name='label', mask=None):
+def polygonize_array_to_shapefile(arr, profile, shape_file_dir, label_name='label', mask=None, connectivity=8):
 
     if mask is None:
         mask = np.ones(arr.shape).astype(bool)
@@ -72,7 +72,7 @@ def polygonize_array_to_shapefile(arr, profile, shape_file_dir, label_name='labe
 
     transform = profile['transform']
     crs = profile['crs']
-    features = list(shapes(arr, mask=mask, transform=transform))
+    features = list(shapes(arr, mask=mask, transform=transform, connectivity=connectivity))
     results = list({'properties': {label_name: (value)}, 'geometry': geometry} for i, (geometry, value) in enumerate(features))
     with fiona.open(shape_file_dir, 'w',
                     driver='ESRI Shapefile',

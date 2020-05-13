@@ -58,15 +58,19 @@ def get_RAG_neighbors(label_array):
     return neighbors
 
 
-def remove_tuples_from_df(df):
-    column_data = [(key, value, type(value)) for key, value in df.iloc[0].to_dict().items()]
+def change_tuples_to_vector(df, columns_to_ignore=None):
+    first_index = list(df.index)[0]
+    column_data = [(column_name, column_value, type(column_value))
+                   for column_name, column_value in df.iloc[first_index].to_dict().items()]
     tuple_cols = list(filter(lambda item: item[2] == tuple, column_data))
+    if columns_to_ignore:
+        tuple_cols = list(filter(lambda item: item[0] not in columns_to_ignore, column_data))
 
-    for item in tuple_cols:
-        new_cols = [item[0] + f'_{k}' for k in range(len(item[1]))]
+    for (column_name, column_value, _) in tuple_cols:
+        new_cols = [column_name + f'_{coord_label}' for coord_label in ['x', 'y']]
         # from https://stackoverflow.com/questions/29550414/how-to-split-column-of-tuples-in-pandas-dataframe
-        df[new_cols] = pd.DataFrame(df[item[0]].tolist(), index=df.index)
-        df.drop(item[0], axis=1, inplace=True)
+        df[new_cols] = pd.DataFrame(df[column_name].tolist(), index=df.index)
+        df.drop(column_name, axis=1, inplace=True)
     cols = [col for col in df.columns if col != 'geometry'] + ['geometry']
     df = df[cols]
     return df
