@@ -51,13 +51,14 @@ def get_4326_dx_dy(profile):
     return dx, dy
 
 
-def polygonize_array_to_shapefile(arr, profile, shape_file_dir, label_name='label', mask=None, connectivity=8):
+def get_geopandas_features_from_array(arr, transform, label_name='label', mask=None, connectivity=4):
+    # see rasterio.features.shapes - needs all false values to be no data areas
+    feature_list = list(shapes(arr, mask=~mask, transform=transform, connectivity=connectivity))
+    geo_features = list({'properties': {label_name: (value)}, 'geometry': geometry} for i, (geometry, value) in enumerate(feature_list))
+    return geo_features
 
-    if mask is None:
-        mask = np.ones(arr.shape).astype(bool)
-    else:
-        # mask is data mask
-        mask = ~mask.astype(bool)
+
+def polygonize_array_to_shapefile(arr, profile, shape_file_dir, label_name='label', mask=None, connectivity=4):
 
     dtype = str(arr.dtype)
     if 'int' in dtype or 'bool' in dtype:
@@ -70,10 +71,8 @@ def polygonize_array_to_shapefile(arr, profile, shape_file_dir, label_name='labe
         dtype = 'float32'
         dtype_for_shape_file = 'float'
 
-    transform = profile['transform']
     crs = profile['crs']
-    features = list(shapes(arr, mask=mask, transform=transform, connectivity=connectivity))
-    results = list({'properties': {label_name: (value)}, 'geometry': geometry} for i, (geometry, value) in enumerate(features))
+    results = get_geopandas_features_from_array(arr, profile['transform'], label_name='label', mask=mask, connectivity=connectivity)
     with fiona.open(shape_file_dir, 'w',
                     driver='ESRI Shapefile',
                     crs=crs,

@@ -27,13 +27,17 @@ def get_graph_from_edge_dataframe(edge_df, directed=True):
     return G
 
 
-def get_RAG_neighbors(label_array):
+def get_RAG_neighbors(label_array, label_subset: list = None, connectivity=4):
     """
     Assume 0 is mask label and ignore.
+
+    Label subset is to obtain neighbors for only a subset of labels in label_array.
+
+    Connectivity determines how the buffer is determined either with 4 or 8 connectivity.
     """
 
     indices = nd.find_objects(label_array)
-    labels_unique = np.unique(label_array)
+    labels_unique = np.unique(label_array) if label_subset is None else label_subset
     neighbors = {}
 
     for k, label in tqdm(enumerate(labels_unique), total=len(labels_unique), desc='rag neighbors'):
@@ -51,8 +55,13 @@ def get_RAG_neighbors(label_array):
         label_slice = label_array[indices_temp]
         mask_slice = (label_slice == 0)
 
-        dist = nd.distance_transform_edt(~label_mask_in_slice, return_distances=True, return_indices=False)
-        neighbors_temp = np.unique(label_slice[(dist > 0) & (dist < 2) & ~mask_slice])
+        structure_dict = {4: None,
+                          8: np.ones((3, 3))}
+        structure = structure_dict[connectivity]
+        dilated = nd.morphology.binary_dilation(label_mask_in_slice,
+                                                iterations=1,
+                                                structure=structure).astype(bool)
+        neighbors_temp = np.unique(label_slice[(~label_mask_in_slice) & (dilated) & ~mask_slice])
         neighbors[label] = neighbors_temp
 
     return neighbors
@@ -66,17 +75,18 @@ def change_tuples_to_vector(df, columns_to_ignore=None):
     if columns_to_ignore:
         tuple_cols = list(filter(lambda item: item[0] not in columns_to_ignore, column_data))
 
+    df_new = df.copy()
     for (column_name, column_value, _) in tuple_cols:
         new_cols = [column_name + f'_{coord_label}' for coord_label in ['x', 'y']]
         # from https://stackoverflow.com/questions/29550414/how-to-split-column-of-tuples-in-pandas-dataframe
-        df[new_cols] = pd.DataFrame(df[column_name].tolist(), index=df.index)
-        df.drop(column_name, axis=1, inplace=True)
-    cols = [col for col in df.columns if col != 'geometry'] + ['geometry']
-    df = df[cols]
-    return df
+        df_new[new_cols] = pd.DataFrame(df_new[column_name].tolist(), index=df.index)
+        df_new.drop(column_name, axis=1, inplace=True)
+    cols = [col for col in df_new.columns if col != 'geometry'] + ['geometry']
+    df_new = df_new[cols]
+    return df_new
 
 
-def export_edges_to_geodataframe(G: nx.classes.graph.Graph, profile: dict, directed_info=False):
+def export_edges_to_geodataframe(G: nx.classes.graph.Graph, crs: dict, directed_info=False):
     edge_data = list(G.edges(data=True))
     edge_dict = {(e[0], e[1]): e[2] for e in edge_data}
     if directed_info:
@@ -86,23 +96,23 @@ def export_edges_to_geodataframe(G: nx.classes.graph.Graph, profile: dict, direc
         edge_records = [{**edge_dict[edge]} for edge in edge_dict.keys()]
 
     geometry = [LineString([edge[0], edge[1]]) for edge in edge_dict.keys()]
-    epsg_code = str(profile['crs']).lower()
     df_geo = gpd.GeoDataFrame(edge_records,
-                              geometry=geometry, crs={'init': epsg_code})
+                              geometry=geometry, crs=crs)
     return df_geo
 
 
-def export_nodes_to_geodataframe(G: nx.classes.graph.Graph, profile: dict):
+def export_nodes_to_geodataframe(G: nx.classes.graph.Graph, crs: dict):
     node_attributes = dict(G.nodes(data=True))
     nodes = list(node_attributes.keys())
     node_data = [node_attributes[node] for node in nodes]
     geometry = [Point(node) for node in nodes]
-    epsg_code = str(profile['crs']).lower()
-    df_geo = gpd.GeoDataFrame(node_data, geometry=geometry, crs={'init': epsg_code})
+    df_geo = gpd.GeoDataFrame(node_data, geometry=geometry, crs=crs)
     return df_geo
 
 
-def dfs_line_search(G: nx.classes.graph.Graph, source: tuple, break_func: Callable = None):
+def dfs_line_search(G: nx.classes.graph.Graph,
+                    source: tuple,
+                    break_func: Callable = None):
     """Meant for a connected graph G to yeild edges in the form [edge_0, edge_1, ..., edge_n]
     so that edge_0[0] is a (juncture, source, or sink) and edge_n[1] is a (juncture, source, or sink)
     and all nodes in between have degree 2, that is unique parent and child.
@@ -129,8 +139,16 @@ def dfs_line_search(G: nx.classes.graph.Graph, source: tuple, break_func: Callab
                 if not new_children:
                     break
 
+                # Undirected case
                 # Degree > 2
-                if nx.degree(G, child) > 2:
+                if not G.is_directed() and (G.degree(child) > 2):
+                    new_edges = [(child, v) for v in G.neighbors(child) if v != parent]
+                    stack += new_edges
+                    break
+
+                # Directed case; check in degree and out degree separately
+                if G.is_directed() and ((G.out_degree(child) > 1) or
+                                        (G.in_degree(child) > 1)):
                     new_edges = [(child, v) for v in G.neighbors(child) if v != parent]
                     stack += new_edges
                     break
