@@ -11,6 +11,21 @@ from typing import Callable
 
 def l2_difference(vec_1: tuple,
                   vec_2: tuple) -> float:
+    """
+    L^2 difference using tuples aka Euclidian distance.
+
+    Parameters
+    ----------
+    vec_1 : tuple
+        (x, y) in R^2
+    vec_2 : tuple
+        (x, y) in R^2
+
+    Returns
+    -------
+    float:
+        ||x - y||_2 for x, y in R^2
+    """
     return np.linalg.norm(np.array(vec_1) - np.array(vec_2))
 
 
@@ -19,17 +34,49 @@ def l2_difference(vec_1: tuple,
 ######################################
 
 
-def get_undirected_river_network(segment_labels: np.ndarray,
-                                 dist: np.ndarray,
-                                 profile: dict,
-                                 interface_segment_labels: list,
-                                 edge_distance_func: Callable = l2_difference,
-                                 connectivity=4) -> nx.classes.graph.Graph:
+def get_undirected_channel_network(segment_labels: np.ndarray,
+                                   dist: np.ndarray,
+                                   profile: dict,
+                                   interface_segment_labels: list,
+                                   edge_distance_func: Callable = l2_difference,
+                                   connectivity: int = 4) -> nx.classes.graph.Graph:
     """
-    Note: `edge_ditance_func` should take two tuples and return a float.
+    Obtain an undirected network from segments and distance array.
 
-    We use the l2_difference for the standard UTM distance. May use `get_meters_between_4326_points`
-    as well (found in rio_tools) that uses geopy library.
+    Graph has keys that are positions (x, y) as UTM map coordinates.
+
+    Parameters
+    ----------
+    segment_labels : np.ndarray
+        m x n label array; labels must be from 1, 2, ..., n where we assume 0 is background/land.
+    dist : np.ndarray
+        m x n distance array (phi from fmm)
+    profile : dict
+        rasterio profile
+    interface_segment_labels : list
+        A list of segment labels that are adjacent to interface
+    edge_distance_func : Callable
+        A function f(a, b), where `a` and `b` are 2d tuples representing positions.
+        In other words, a, b in R^2. Defaults to the normal L2 difference.
+    connectivity : int
+        4- or 8-connectivity for determining adjacency of derived pixes.
+
+    Returns
+    -------
+    nx.classes.graph.Graph:
+        The graph from NetworkX to be returned. The graph has the following attributes:
+
+        Nodes: (x, y)
+            + label - segment label associated with node (int)
+            + 'meters_to_interface' - distance determined using (x, y) position on dist (float)
+            + x - x-position (float)
+            + y - y-position (float)
+            + interface_adj - adjacency to interface from FMM (bool)
+        Edges: ((x1, y1), (x2, y2))
+            + length: value from edge_distance_func, defaults to UTM (float)
+            + weight: same as length (float)
+
+        See NetworkX structure for details on reading such attributes.
     """
 
     # Obtain one distance within a segment - only need one since we thresholded them to generate segments
@@ -64,8 +111,8 @@ def get_undirected_river_network(segment_labels: np.ndarray,
         def get_edge_coords(edge_tuple):
             return label_to_centroid[edge_tuple[0]], label_to_centroid[edge_tuple[1]]
 
-        edges_for_river = list(map(get_edge_coords, edges_temp))
-        G.add_edges_from(edges_for_river)
+        edges_for_channel = list(map(get_edge_coords, edges_temp))
+        G.add_edges_from(edges_for_channel)
 
     list(map(add_edge_to_graph, tqdm(labels_unique, desc='adding edges')))
 
@@ -93,6 +140,21 @@ def get_undirected_river_network(segment_labels: np.ndarray,
 
 def get_map_centroid_from_binary_mask(mask: np.ndarray,
                                       profile: dict) -> tuple:
+    """
+    Get map coordinates for a centroid from a binary mask.
+
+    Parameters
+    ----------
+    mask : np.ndarray
+        m x n binary array.
+    profile : dict
+        rasterio profile associated with a map with dimensions and CRS of mask.
+
+    Returns
+    -------
+    tuple:
+        (x, y) position of centroid in map coordinates.
+    """
     transform = profile['transform']
     ind_y, ind_x = nd.measurements.center_of_mass(mask.astype(np.uint8), [1])
     centroid = xy(transform, ind_y, ind_x)
@@ -100,8 +162,26 @@ def get_map_centroid_from_binary_mask(mask: np.ndarray,
 
 
 def update_distance_using_graph_structure(G: nx.classes.graph.Graph,
-                                          use_directed: bool = False,
-                                          interface_centroid: tuple = None):
+                                          use_directed: bool = True) -> nx.Graph:
+    """
+    Because phi finds the shortest distance in the channel, we compute the distance along centerlines for
+    a more accurate measurement.
+
+    Parameters
+    ----------
+    G : nx.classes.graph.Graph
+        G can be directed or undirected. The shortest path will be computed appropriately.
+    use_directed : bool
+        Can convert G to undirected for computing distances.
+        Defaults to True. If G is undirected, then will be computed as expected.
+
+    Returns
+    -------
+    nx.classes.graph.Graph:
+
+        Overwrites attribute 'meters_to_interface' from Graph obtained via 'get_undirected_channel_network' or
+        'direct_channel_network_using_distance'.
+    """
 
     node_data = dict(G.nodes(data=True))
     nodes = list(node_data.keys())
@@ -111,9 +191,9 @@ def update_distance_using_graph_structure(G: nx.classes.graph.Graph,
 
     connected_to_interface = [node for node in nodes if (node_data[node]['interface_adj'])]
 
-    if interface_centroid is None:
-        xs, ys = zip(*connected_to_interface)
-        interface_centroid = np.mean(xs), np.mean(ys)
+    # Obtain a proxy interface centroid for computing distance
+    xs, ys = zip(*connected_to_interface)
+    interface_centroid = np.mean(xs), np.mean(ys)
 
     G_aux = nx.DiGraph()
 
@@ -134,25 +214,59 @@ def update_distance_using_graph_structure(G: nx.classes.graph.Graph,
     else:
         distance_dict = (nx.shortest_path_length(G_aux.to_undirected(), target=interface_centroid, weight='weight'))
 
-    # We are going to overwrite this graph attribute - no need to remove :)
+    # We are going to overwrite this graph attribute - no need to remove
     distance_dict_nodes = {node: {'meters_to_interface': distance_dict[node]}
                            for node in distance_dict.keys()}
 
     nx.set_node_attributes(G, distance_dict_nodes)
     nx.set_node_attributes(G_aux, distance_dict_nodes)
 
-    return G, G_aux
+    return G
 
 
-def reverse_line(line: list):
+def reverse_line(line: list) -> list:
+    """
+    Takes a line of edges [(p0, p1), (p1, p2) ... (pn_m_1, pn)] and returns
+    [(pn, pn_m_1), ... (p1, p0)], where the p's are (x, y) in map coordinates.
+
+    Parameters
+    ----------
+    line : list
+        List of edges (p0, p1), where p0, p1 in R^2
+
+    Returns
+    -------
+    list:
+        Returns list of edges reversed
+    """
     return [(p1, p0) for (p0, p1) in reversed(line)]
 
 
-def direct_line(line: list, node_data: dict):
+def direct_line(line: list, node_data: dict) -> list:
     """
-    Direct straight line path.
+    This uses the nodata as obtained from `nx.get_node_attributes`
+    and orients the edges of a line based on the attribute `meters_to_interface`.
 
-    We assume flow travels to interface
+    Orients edge towards interface, i.e. whichever endpoint is closer.
+
+    Assumes line is provided as consecutive edges e.g. [(p0, p1), (p1, p2), ...]
+
+    Parameters
+    ----------
+    line : list
+       List of edges of the form (p, q), where p, q in R^2.
+    node_data : dict
+        Networkx node attribute dictionary of the form:
+            node (key): data_dict (value)
+
+        and data_dict is of the form:
+            node_attribute_name (key):  attribute_value (value)
+
+    Returns
+    -------
+    list:
+        List of edges directed. May provivde both edge orientations if endpoints are
+        equidistant to interface.
     """
     node_0 = line[0][0]
     node_1 = line[-1][-1]
@@ -180,11 +294,29 @@ def direct_line(line: list, node_data: dict):
         return reverse_line(line) + line
 
 
-def filter_dangling_segments(G, segment_threshold=3, meters_to_interface=100):
+def filter_dangling_segments(G: nx.Graph, segment_threshold: int = 3, meters_to_interface: float = 100) -> nx.Graph:
     """
-    Filters graph removing edges
-     - with less than a threshold `min_edges_in_dangling_segment`
-     - having a node with out degree 1
+    This is a function to remove partitions of edges from graph one of whose endpoint is degree 1 and has
+    size less than `segment_threshold`. Ignores such segments if at least one endpoint is:
+        - less than or equal to `meters_to_interface` or
+        - connected to the interface.
+
+    The edge partition is determined by dividing edges between nodes that are junctions, adjacent to the interface, or
+    have degree 1.
+
+    Parameters
+    ----------
+    G : nx.Graph
+        Uses the attributes `meters_to_interface` and `interface_adj`.
+    segment_threshold : int
+        The minimum number of edges in edge grouping to remain in the graph
+    meters_to_interface : float
+        If an endpoint of edge group is less than or equal to meters to interface, than do not remove.
+
+    Returns
+    -------
+    nx.Graph:
+        Changes input graph in place, but also returns object for clarity
     """
 
     node_data = dict(G.nodes(data=True))
@@ -211,7 +343,7 @@ def filter_dangling_segments(G, segment_threshold=3, meters_to_interface=100):
         # Check if edge belongs to  dangling segment
         node_0 = edge[0]
         node_1 = edge[1]
-        return ((edge_data[edge]['edges_in_segment'] <= segment_threshold) &
+        return ((edge_data[edge]['edges_in_segment'] < segment_threshold) &
                 ((filter_node_func(node_0)) |
                  (filter_node_func(node_1))
                  )
@@ -229,13 +361,40 @@ def filter_dangling_segments(G, segment_threshold=3, meters_to_interface=100):
     return G_filtered
 
 
-def direct_river_network_using_distance(G: nx.Graph,
-                                        remove_danlging_segments=False,
-                                        segment_threshold=3,
-                                        dangling_iterations=1,
-                                        meters_to_interface_filter_buffer=100):
+def direct_channel_network_using_distance(G: nx.Graph,
+                                          remove_danlging_segments: bool = False,
+                                          segment_threshold: int = 3,
+                                          dangling_iterations: int = 1,
+                                          meters_to_interface_filter_buffer: int = 100) -> nx.DiGraph:
     """
-    Uses `meter_to_coast` attribute and segmented graph to direct network
+    Directs the channel network and adds additional graph attributes.
+
+    Parameters
+    ----------
+    G : nx.Graph
+        See `get_undirected_channel_network` for description.
+    remove_danlging_segments : bool
+        Pruning graph according to the parameters below
+    segment_threshold : int
+        Assume edge partition between junctions, degree 1 nodes, and those that touch the interface. Requires
+        each edge grouping to have at least this size otherwise will be removed.
+    dangling_iterations : int
+        We can prune the graph iteratively (edge groups that were previously interior may now be admissable for pruning)
+    meters_to_interface_filter_buffer : int
+        We can ignore edge groups one of whose endpoints is within this distance to the interface.
+
+    Returns
+    -------
+    nx.DiGraph:
+        See `get_undirected_channel_network` for graph (node and edge) attributes in undirected case.
+        These attributes are all added to the directed grap and updated appropriately.
+        We additionally add:
+        Nodes: (x, y)
+            + graph_degree
+        Edges: ((x1, y1), (x2, y2))
+            + segment_id - unique integer id for edge grouping (int)
+            + edges_in_segment - number of edges in particular edge group that edge belongs (int)
+            + cc_id - unique integer id associated with different connected components (int)
     """
     diG = nx.DiGraph()
 
@@ -254,8 +413,8 @@ def direct_river_network_using_distance(G: nx.Graph,
 
     for cc_id, component_nodes in enumerate(con_components):
 
-        G_con_comp = G.subgraph(component_nodes)
-        source = [node for node in G_con_comp if (node_data[node]['interface_adj'])][0]
+        con_comps = G.subgraph(component_nodes)
+        source = [node for node in con_comps if (node_data[node]['interface_adj'])][0]
 
         # Make sure that we partition
         def dfs_line_search_with_interface(G_con_comp, source):
@@ -263,7 +422,7 @@ def direct_river_network_using_distance(G: nx.Graph,
                 return node_data[node]['interface_adj']
             return dfs_line_search(G_con_comp, source, break_func=interface_criterion)
 
-        lines = list(dfs_line_search_with_interface(G_con_comp, source))
+        lines = list(dfs_line_search_with_interface(con_comps, source))
 
         def direct_lines_partial(line):
             return direct_line(line, node_data)
@@ -300,7 +459,7 @@ def direct_river_network_using_distance(G: nx.Graph,
             diG = filter_dangling_segments(diG,
                                            segment_threshold=segment_threshold,
                                            meters_to_interface=meters_to_interface_filter_buffer)
-            diG = direct_river_network_using_distance(diG.to_undirected(),
-                                                      remove_danlging_segments=False,
-                                                      segment_threshold=segment_threshold)
+            diG = direct_channel_network_using_distance(diG.to_undirected(),
+                                                        remove_danlging_segments=False,
+                                                        segment_threshold=segment_threshold)
     return diG

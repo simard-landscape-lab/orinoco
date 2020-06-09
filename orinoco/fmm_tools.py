@@ -12,12 +12,39 @@ from .nx_tools import get_RAG_neighbors
 from skimage.segmentation import relabel_sequential
 
 
-def get_distance_along_river_using_fmm(water_mask: np.array,
-                                       init_mask: np.array,
-                                       dx: float,
-                                       dy: float,
-                                       area_threshold: float = .05,
-                                       minimum_distance_from_init_mask: float = 1):
+def get_distance_along_channel_using_fmm(water_mask: np.array,
+                                         init_mask: np.array,
+                                         dx: float,
+                                         dy: float,
+                                         area_threshold: float = 0.,
+                                         minimum_distance_from_init_mask: float = 0) -> np.array:
+    """
+    Obtain distance array from binary mask and initialization mask (the latter representing the ocean).
+    Requires specification of resolution, but can trivially set dx=dy=1 for experimentation.
+
+    Parameters
+    ----------
+    water_mask : np.array
+        Binary water mask (will be recast to boolean)
+    init_mask : np.array
+        Ocean mask or the region where we want our flow to originate
+    dx : float
+        Horizontal resolution
+    dy : float
+        Vertical Resolution
+    area_threshold : float
+        Remove connected areas whose pixel size whose relative size is
+        below this threshold. Defaults to 0.
+    minimum_distance_from_init_mask : float
+        Removes area within certain distance of init mask
+        After fast-marching is run. Defaults to 0.
+
+    Returns
+    -------
+    np.array:
+       Distance array, same dimensions as water_mask with nodata areas having value np.nan
+    """
+
     mask = ~(water_mask.astype(bool))
     phi = ma.masked_array(np.ones(water_mask.shape), mask=mask)
     phi.data[init_mask.astype(bool)] = 0
@@ -27,13 +54,15 @@ def get_distance_along_river_using_fmm(water_mask: np.array,
     # Adjust Distance Array
     dist_data = dist.data.astype(np.float32)
     # remove areas close to the ocean interface
-    dist_mask = mask | (dist_data <= minimum_distance_from_init_mask)
+    dist_mask = mask
+    if minimum_distance_from_init_mask:
+        dist_mask = dist_mask | (dist_data <= minimum_distance_from_init_mask)
     dist_data[dist_mask] = np.nan
 
     # Remove Areas that are smaller than 2.5 percent of total area
     # The ocean mask and the water mask may not agree near the interface and this removes
     # Areas of erroneous additions
-    if area_threshold > 0:
+    if area_threshold > 0.:
         binary_array = (~np.isnan(dist_data)).astype(np.uint8)
         min_size = np.sum(binary_array > 0) * area_threshold
         size_mask = filter_binary_array_by_min_size(binary_array, min_size, mask=dist_mask).astype(bool)
@@ -42,9 +71,25 @@ def get_distance_along_river_using_fmm(water_mask: np.array,
     return dist_data
 
 
-def merge_labels_below_minsize(labels, min_size, connectivity=4):
+def merge_labels_below_minsize(labels: np.array, min_size: int, connectivity: int = 4) -> np.array:
     """
-    Takes labels and merges a label with a connected neighbor (with respect to the connectivity description).
+    Takes labels below min_size and merges a label with a connected neighbor (with respect to the connectivity description).
+
+    Parameters
+    ----------
+    labels : np.array
+        2d label array.
+    min_size : int
+        Keeps only segments of at least this size
+    connectivity : int
+        4 or 8 connectivity accepted.
+
+        See: https://en.wikipedia.org/wiki/Pixel_connectivity
+
+    Returns
+    -------
+    np.array:
+        Updated 2d label array
     """
     size_features = get_superpixel_area_as_features(labels)
     unique_labels = np.arange(0, labels.max() + 1)
@@ -65,12 +110,41 @@ def merge_labels_below_minsize(labels, min_size, connectivity=4):
 
 
 def get_distance_segments(distance: np.array,
-                          pixel_step: int,
+                          n_pixel_threshold: int,
                           dx: float,
                           dy: float,
                           connectivity: int = 4,
-                          min_size: int = 4):
-    threshold = min(dx, dy) * pixel_step
+                          min_size: int = 4) -> tuple:
+    """
+
+
+    Parameters
+    ----------
+    distance : np.array
+        Distance array determined using fmm
+    n_pixel_threshold : int
+        Segments are determined according to int(distance / threshold), ensuring connectivity, where
+        threshold = min(dx, dy) * n_pixel_threshold.
+    dx : float
+        Horizontal resolution
+    dy : float
+        Vertical resolution
+    connectivity : int
+        4 or 8 connectivity accepted.
+        See: https://en.wikipedia.org/wiki/Pixel_connectivity
+    min_size : int
+       Minimum Segment size. Default 4.
+
+    Returns
+    -------
+    tuple:
+       labels, interface_adjacent_labels
+
+        + labels is a 2d array with the segmentation in which each pixel corresponds to a segment label.
+        + interface_adjacent_labels is an array of labels adjacent to the interface determined via dist,
+        namely those segments less than threshold
+    """
+    threshold = min(dx, dy) * n_pixel_threshold
     dist_threshold = (distance / threshold)
     # We ensure that our background is 0
     dist_temp = dist_threshold + 1
@@ -89,5 +163,8 @@ def get_distance_segments(distance: np.array,
     # Obtain labels adjacent to interface
     distance_pseudo_features = get_features_from_array(labels, dist_threshold).ravel()
     # weird indexing to avoid warning due to np.nan which occurs at 0.
-    interface_adjacent_labels = np.argwhere(distance_pseudo_features[1:] <= 1) + 1
+    # namely, we ignore index 1 by using [1:] and since argwhere assumes input is properly formed
+    # we must add 1 back.
+    # Note our features are such that each index corresponds to that label!
+    interface_adjacent_labels = np.argwhere(distance_pseudo_features[1:] < threshold) + 1
     return labels, interface_adjacent_labels

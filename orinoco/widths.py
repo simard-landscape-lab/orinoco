@@ -127,11 +127,33 @@ def add_width_features_to_graph(G: nx.classes.graph.Graph,
 ##################
 
 
-def unit_vector(vector: np.ndarray):
+def unit_vector(vector: np.ndarray) -> np.array:
+    """
+
+    Parameters
+    ----------
+    vector : np.ndarray
+        [TODO:description]
+
+    Returns
+    -------
+    np.array:
+        [TODO:description]
+    """
     return vector / np.linalg.norm(vector)
 
 
 def angle_between(v1: np.ndarray, v2: np.ndarray):
+    """
+    [TODO:summary]
+
+    [TODO:description]
+
+    Parameters
+    ----------
+    vector : np.ndarray
+        [TODO:description]
+    """
     v1_u = unit_vector(v1)
     v2_u = unit_vector(v2)
     return np.arccos(np.clip(np.dot(v1_u, v2_u), -1.0, 1.0))
@@ -212,12 +234,12 @@ def add_flow_attributes_from_gradient(G: nx.Graph,
     return G
 
 
-def get_flow_vector_using_network(node: tuple, river_graph: nx.Graph,
+def get_flow_vector_using_network(node: tuple, diG: nx.Graph,
                                   weighted_by_distance: bool = True,
                                   inv_dist_power: int = 1,
                                   clip_junction_neigbors: int = 2) -> np.ndarray:
     """
-    Takes node and river_graph and obtain direction of flow at node dictated by network structure.
+    Takes node and diG and obtain direction of flow at node dictated by network structure.
 
     Take a weighted average of neighboring vectors to determine which direction is most likely at
     given node. Weighted according to (1/distance) ** inv_dist_power.
@@ -225,7 +247,7 @@ def get_flow_vector_using_network(node: tuple, river_graph: nx.Graph,
     `clip_junction_neigbors` tells the function how many neighbors to use in the weighted sum.
     If None (or 0) all neighbors are used.
     """
-    edge_neighbors = [(node, neighbor) for neighbor in nx.all_neighbors(river_graph, node)]
+    edge_neighbors = [(node, neighbor) for neighbor in nx.all_neighbors(diG, node)]
     neighbor_vectors = list(map(edge_to_vector, edge_neighbors))
 
     def realign_vectors_partial(edge_vector):
@@ -425,75 +447,35 @@ def _update_width_geometry(row):
     return width_line
 
 
-def update_graph_with_geometric_width_data(river_graph, width_df):
-    df_dict = width_df.set_index('node').to_dict()
-    widths_dict = df_dict['width_m']
-
-    nodes = list(river_graph.nodes())
-    node_att_updates = {node: {'width_from_geometry': widths_dict[node],
-                               }
-                        for node in nodes}
-    nx.set_node_attributes(river_graph, node_att_updates)
-    return river_graph
-
-
 ##################
 # Final Width
 # Determination
 ##################
 
-def update_node_width_m(river_graph: nx.DiGraph,
-                        relative_width_buffer: float = np.sqrt(2),
-                        absolute_width_cutoff: float = 500,
-                        resolution=30):
-    """
-    We use the width geometry to update the graph node attributes.
+def update_nodes_with_geometric_width_data(diG, width_df):
+    df_dict = width_df.set_index('node').to_dict()
+    widths_dict = df_dict['width_m']
 
-    We simply ensure the width from the geometry is within 50% (or within width_seg_buffer) of the width from segment otherwise, we
-    selct the width from segment.
-    """
-    width_from_segment_dict = nx.get_node_attributes(river_graph, 'width_from_segment')
-    if not width_from_segment_dict:
-        raise ValueError('diG must have `width_from_segment` attribute')
-
-    width_from_geometry_dict = nx.get_node_attributes(river_graph, 'width_from_geometry')
-    if not width_from_segment_dict:
-        raise ValueError('diG must have `width_from_segment` attribute')
-
-    def final_width_determination(width_from_geometry, width_from_segment, resolution):
-        thresh = min((relative_width_buffer) * width_from_segment, absolute_width_cutoff)
-        # If the difference is smaller than the resolution cell, we want the geometric value
-        if resolution is not None:
-            thresh = max(thresh, resolution)
-        if np.abs(width_from_geometry - width_from_segment) > thresh:
-            return width_from_segment
-        else:
-            return width_from_geometry
-
-    # Update Nodes
-    width_node_data = {node: {'width_m': final_width_determination(width_from_geometry_dict[node],
-                                                                   width_from_segment_dict[node],
-                                                                   resolution)
-                              }
-                       for node in list(river_graph.nodes())
-                       }
-
-    nx.set_node_attributes(river_graph, width_node_data)
-    return river_graph
+    nodes = list(diG.nodes())
+    node_att_updates = {node: {'width_m': widths_dict[node],
+                               }
+                        for node in nodes}
+    nx.set_node_attributes(diG, node_att_updates)
+    return diG
 
 
-def update_edge_width_m(river_graph: nx.DiGraph):
+def update_edge_width_m(diG: nx.DiGraph):
     """
     Update edge widths as average width from nodes
     """
 
     # Get Node Data
-    node_width_dict = nx.get_node_attributes(river_graph, 'width_m')
+    node_width_dict = nx.get_node_attributes(diG, 'width_m')
     if not node_width_dict:
         raise ValueError('diG must have `width_m` attribute')
 
     # Get Edge Data
-    edge_data_ = (river_graph.edges(data=True))
+    edge_data_ = (diG.edges(data=True))
     edge_data = {(e[0], e[1]): e[2] for e in edge_data_}
     edge_data.update({(e[1], e[0]): e[2] for e in edge_data_})
     edges = edge_data.keys()
@@ -503,20 +485,15 @@ def update_edge_width_m(river_graph: nx.DiGraph):
         width_1 = node_width_dict[edge[1]]
         return (width_0 + width_1) / 2
     edge_width_dict = {edge: {'width_m': get_edge_width(edge)} for edge in edges}
-    nx.set_edge_attributes(river_graph, edge_width_dict)
-    return river_graph
+    nx.set_edge_attributes(diG, edge_width_dict)
+    return diG
 
 
-def update_graph_with_widths(river_graph: nx.DiGraph,
-                             resolution=None,
-                             relative_width_buffer: float = np.sqrt(2),
-                             absolute_width_cutoff: float = 500):
+def update_graph_with_widths(diG: nx.DiGraph,
+                             width_df):
     """
     Updates the nodes and edges according to the determinations above.
     """
-    river_graph = update_node_width_m(river_graph,
-                                      relative_width_buffer=relative_width_buffer,
-                                      absolute_width_cutoff=absolute_width_cutoff,
-                                      resolution=resolution)
-    river_graph = update_edge_width_m(river_graph)
-    return river_graph
+    diG = update_nodes_with_geometric_width_data(diG, width_df)
+    diG = update_edge_width_m(diG)
+    return diG
