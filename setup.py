@@ -13,26 +13,30 @@ except ImportError:
     with open(path.join(file_dir, 'README.md'), encoding='utf-8') as f:
         long_description = f.read()
 
-# To be filled in later
-REQUIRES = []
 
-setup(
-    name='orinoco',
-    version='0.1dev',
+def parse_requirements_file(filename):
+    with open(filename, encoding='utf-8') as fid:
+        requires = [l.strip() for l in fid.readlines() if l]
 
-    description='A python library for generating a river network from a water mask',
-    long_description=long_description,
-    url='tobefilledoutlatergithubthingy',
-
-    author='Charlie Marshak',
-    author_email='charlie.z.marshak@jpl.nasa.gov',
+    return requires
 
 
-    keywords='fast marching method centerlines river network',
+INSTALL_REQUIRES = parse_requirements_file('requirements.txt')
 
-    packages=['orinoco'],  # setuptools.find_packages(exclude=['doc']),
+setup(name='orinoco',
+      version='0.1dev',
 
-    # Required Packages
-    install_requires=REQUIRES,
+      description='A python library for generating a connected channel network from a water mask',
+      long_description=long_description,
+      url='tobefilledoutlatergithubthingy',
 
-)
+      author='Charlie Marshak',
+      author_email='charlie.z.marshak@jpl.nasa.gov',
+
+      keywords='fast marching method centerlines river network',
+
+      packages=['orinoco'],  # setuptools.find_packages(exclude=['doc']),
+
+      # Required Packages
+      install_requires=INSTALL_REQUIRES,
+      )

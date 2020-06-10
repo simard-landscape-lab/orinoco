@@ -9,20 +9,10 @@ Products:
 + A networkx directed Graph that can be used for additional analysis.
 + River Centroids and Centerlines (corresponding to the network's nodes and edges, respectively)
 
+Notebooks:
++ How to compute entropy
+
 We generate the river network using scikit-fmm, skimage, networkx, geopandas, shapely, etc. See example in [notebooks](notebooks) to see how these products are generated.
-
-# Dependencies
-
-+ rasterio
-+ skimage
-+ networkx
-+ geopandas
-+ numpy
-+ scipy
-+ tqdm
-+ matplotlib
-+ shapely
-+ jupyter (for examples)
 
 ## Installation
 

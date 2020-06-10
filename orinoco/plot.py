@@ -2,8 +2,6 @@ import matplotlib.pyplot as plt
 from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
 import cartopy.crs as ccrs
 import affine
-from typing import Tuple
-import matplotlib
 
 ####################
 # Cartopy Utils
@@ -51,8 +49,7 @@ def make_map(projection: ccrs.PlateCarree = ccrs.PlateCarree(),
              figsize: tuple = (20, 20),
              ticklabelsize: int = 20,
              grid_zorder: int = 3,
-             labels: bool = False) -> Tuple[matplotlib.figure.Figure,
-                                            matplotlib.axes._subplots.AxesSubplot]:
+             labels: bool = False) -> tuple:
     """
     Obtaining a fig, ax for cartopy plotting quickly.
 

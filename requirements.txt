@@ -1,0 +1,17 @@
+affine
+Fiona
+geopandas
+geopy
+numpy
+networkx
+pandas
+rasterio
+scikit-image
+scipy
+Shapely
+six
+tqdm
+jupyter
+seaborn
+descartes
+scikit-fmm

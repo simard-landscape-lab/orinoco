@@ -42,7 +42,7 @@ def get_graph_from_edge_dataframe(edge_df: gpd.GeoDataFrame, directed: bool = Tr
     return G
 
 
-def get_RAG_neighbors(label_array: np.ndarray, label_subset: list = None, connectivity: int = 4) -> Dict[list]:
+def get_RAG_neighbors(label_array: np.ndarray, label_subset: list = None, connectivity: int = 4) -> Dict[int, list]:
     """
     Obtains dictionary of lists. Given a label i, the value of key i is a list of the neighbors with respect to the RAG.
 
@@ -62,7 +62,7 @@ def get_RAG_neighbors(label_array: np.ndarray, label_subset: list = None, connec
 
     Returns
     -------
-    Dict[list]:
+    Dict[int, list]:
        Dict[i] = [neighbor1, neighbor2, ...]
     """
     indices = nd.find_objects(label_array)
@@ -190,7 +190,7 @@ def export_nodes_to_geodataframe(G: nx.classes.graph.Graph, crs: dict) -> gpd.Ge
 
 def dfs_line_search(G: nx.classes.graph.Graph,
                     source: tuple,
-                    break_func: Callable = None) -> Generator[list]:
+                    break_func: Callable = None) -> Generator[list, None, None]:
     """
     Meant for a connected graph G to yeild edges in the form [edge_0, edge_1, ..., edge_n]
     so that edge_0[0] is a (juncture or degree 1) and edge_n[1] is a (juncture or degree 1)
@@ -211,7 +211,7 @@ def dfs_line_search(G: nx.classes.graph.Graph,
 
     Returns
     -------
-    Generator[list]:
+    Generator[list, None, None]:
         List of edges within one edge grouping
     """
     stack = [(source, v) for v in G.neighbors(source)]

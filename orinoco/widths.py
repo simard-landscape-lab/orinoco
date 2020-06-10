@@ -555,7 +555,7 @@ def get_segment_df(segments_arr: np.ndarray, G: nx.Graph, profile: dict) -> gpd.
     return df_segments
 
 
-def _update_segment_df_with_node_data(df_segments: gpd.GeoDataFrame, node_data: dict) -> gpd.GeoDataframe:
+def _update_segment_df_with_node_data(df_segments: gpd.GeoDataFrame, node_data: dict) -> gpd.GeoDataFrame:
     """
     Adds columns:
 
@@ -572,7 +572,7 @@ def _update_segment_df_with_node_data(df_segments: gpd.GeoDataFrame, node_data: 
 
     Returns
     -------
-    gpd.GeoDataframe:
+    gpd.GeoDataFrame:
         df_segments modified
     """
     # This ensures that if multiple polygons were required to specify a single label
@@ -666,7 +666,7 @@ def buffer_segments_with_rag(G: nx.Graph, df_segments: gpd.GeoDataFrame, radius:
     return df_segment_buffered
 
 
-def get_candidate_line_df(df_segments: gpd.GeoDataframe) -> gpd.GeoDataframe:
+def get_candidate_line_df(df_segments: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
     """
     Obtain a dataframe of same height (axis=0) as df_segments with labels and geometry a LineString that will
     be an upper bound for final measured width geometry. We specify an upper bounder using the perimeter of the
@@ -674,13 +674,13 @@ def get_candidate_line_df(df_segments: gpd.GeoDataframe) -> gpd.GeoDataframe:
 
     Parameters
     ----------
-    df_segments : gpd.GeoDataframe
-        Geodataframe with labels and polygons associated with segment labels.
+    df_segments : gpd.GeoDataFrame
+        GeodataFrame with labels and polygons associated with segment labels.
 
     Returns
     -------
-    gpd.GeoDataframe:
-        Geodataframe with labels and LineString whose length fashions an upperbound of the width. Namely it has length equal to
+    gpd.GeoDataFrame:
+        GeodataFrame with labels and LineString whose length fashions an upperbound of the width. Namely it has length equal to
         the perimeter of the segment it belongs, symmetric about the node that determines the centroid of the segment.
     """
 
@@ -793,7 +793,7 @@ def _update_width_geometry(row: gpd.GeoSeries) -> LineString:
 ##################
 
 def update_nodes_with_geometric_width_data(G: nx.DiGraph,
-                                           width_df: gpd.GeoDataframe) -> nx.Graph:
+                                           width_df: gpd.GeoDataFrame) -> nx.Graph:
     """
     Uses width_df (GeoDataFrame) and uses the length of line strings
     to add `width_m` to node attributes.
@@ -802,7 +802,7 @@ def update_nodes_with_geometric_width_data(G: nx.DiGraph,
     ----------
     G : nx.DiGraph
         Channel network graph
-    width_df : gpd.GeoDataframe
+    width_df : gpd.GeoDataFrame
         Width df with column `width_m`.
 
     Returns
