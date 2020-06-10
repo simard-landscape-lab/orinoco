@@ -4,11 +4,26 @@ from shapely.geometry import LineString, Point
 import pandas as pd
 import scipy.ndimage as nd
 import numpy as np
-from typing import Callable
+from typing import Callable, Generator, Dict
 from tqdm import tqdm
 
 
-def get_graph_from_edge_dataframe(edge_df, directed=True):
+def get_graph_from_edge_dataframe(edge_df: gpd.GeoDataFrame, directed: bool = True) -> nx.Graph:
+    """
+    Obtain a networkX Graph or Digraph from an edge dataframe as exported from 'export_edges_to_geodataframe'.
+
+    Parameters
+    ----------
+    edge_df : pd.DataFrame
+        Edges encoded as shapely.geometry.LineString. If directed, assume edge[0] --> edge[1].
+    directed : bool
+        Whether to use undirected or directed Graph.
+
+    Returns
+    -------
+    nx.Graph:
+        The graph with edges and edge attributes from geodataframe.
+    """
 
     G = nx.DiGraph() if directed else nx.Graph()
 
@@ -27,15 +42,29 @@ def get_graph_from_edge_dataframe(edge_df, directed=True):
     return G
 
 
-def get_RAG_neighbors(label_array, label_subset: list = None, connectivity=4):
+def get_RAG_neighbors(label_array: np.ndarray, label_subset: list = None, connectivity: int = 4) -> Dict[list]:
     """
-    Assume 0 is mask label and ignore.
+    Obtains dictionary of lists. Given a label i, the value of key i is a list of the neighbors with respect to the RAG.
 
-    Label subset is to obtain neighbors for only a subset of labels in label_array.
+    Require 0 to be mask label and neither include in dictionary nor as neighbors for any nodes.
 
-    Connectivity determines how the buffer is determined either with 4 or 8 connectivity.
+    Label subset is to obtain neighbors for only a subset of labels in label_array. Connectivity determines how the
+    RAG is computed on the original label array. Accepted are 4 or 8 connectivity.
+
+    Parameters
+    ----------
+    label_array : np.ndarray
+        p x q array of labels
+    label_subset : list
+        subset of labels. Default is None in which all labels are used
+    connectivity : int
+        4- or 8- connectivity to be used. Default is 4.
+
+    Returns
+    -------
+    Dict[list]:
+       Dict[i] = [neighbor1, neighbor2, ...]
     """
-
     indices = nd.find_objects(label_array)
     labels_unique = np.unique(label_array) if label_subset is None else label_subset
     neighbors = {}
@@ -67,7 +96,26 @@ def get_RAG_neighbors(label_array, label_subset: list = None, connectivity=4):
     return neighbors
 
 
-def change_tuples_to_vector(df, columns_to_ignore=None):
+def change_tuples_to_vector(df: pd.DataFrame, columns_to_ignore: list = None) -> pd.DataFrame:
+    """
+    Assuming dataframe df has a column of the form (x, y), then splits column as
+    `column_name_x`, `column_name_y` with values x and y respectively.
+
+    This is to allow for geodataframes to be able to save as geojson files in which tuples and
+    lists are not permitted as attribute values.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        Dataframe to be split
+    columns_to_ignore : list
+        Removes these columns from the new dataframe
+
+    Returns
+    -------
+    pd.DataFrame:
+        New dataframe output - the original dataframe is copied and not modified.
+    """
     first_index = list(df.index)[0]
     column_data = [(column_name, column_value, type(column_value))
                    for column_name, column_value in df.iloc[first_index].to_dict().items()]
@@ -86,14 +134,28 @@ def change_tuples_to_vector(df, columns_to_ignore=None):
     return df_new
 
 
-def export_edges_to_geodataframe(G: nx.classes.graph.Graph, crs: dict, directed_info=False):
+def export_edges_to_geodataframe(G: nx.classes.graph.Graph, crs: dict) -> gpd.GeoDataFrame:
+    """
+    Take a graph and a coordinate reference system and export the graph edges and their attributes to a geodataframe
+    for plotting and saving to common GIS formats.
+
+    We assume each node is given as (x, y) in R^2 associated with the appropriate CRS.
+
+    Parameters
+    ----------
+    G : nx.classes.graph.Graph
+        Graph to export (can be directed or undirected).
+    crs : dict
+        Using the rasterio convention: `{'init': 'epsg:<epsg_code>'}`.
+
+    Returns
+    -------
+    gpd.GeoDataFrame:
+        The geodataframe with edges as LineStrings (see shapely.geometry) and all edge attributes.
+    """
     edge_data = list(G.edges(data=True))
     edge_dict = {(e[0], e[1]): e[2] for e in edge_data}
-    if directed_info:
-        edge_records = [{**{'head': list(edge[0]), 'tail': list(edge[1])},
-                         **edge_dict[edge]} for edge in edge_dict.keys()]
-    else:
-        edge_records = [{**edge_dict[edge]} for edge in edge_dict.keys()]
+    edge_records = [{**edge_dict[edge]} for edge in edge_dict.keys()]
 
     geometry = [LineString([edge[0], edge[1]]) for edge in edge_dict.keys()]
     df_geo = gpd.GeoDataFrame(edge_records,
@@ -101,7 +163,23 @@ def export_edges_to_geodataframe(G: nx.classes.graph.Graph, crs: dict, directed_
     return df_geo
 
 
-def export_nodes_to_geodataframe(G: nx.classes.graph.Graph, crs: dict):
+def export_nodes_to_geodataframe(G: nx.classes.graph.Graph, crs: dict) -> gpd.GeoDataFrame:
+    """
+    Take a graph and a coordinate reference system and export the graph nodes and their attributes to
+    a geodataframe for plotting and saving to common GIS formats.
+
+    Parameters
+    ----------
+    G : nx.classes.graph.Graph
+        Graph to export
+    crs : dict
+        Using the rasterio convention: `{'init': 'epsg:<epsg_code>'}`.
+
+    Returns
+    -------
+    gpd.GeoDataFrame:
+       Geodataframe with nodes as Points (see shapely.geometry) and all node attributes.
+    """
     node_attributes = dict(G.nodes(data=True))
     nodes = list(node_attributes.keys())
     node_data = [node_attributes[node] for node in nodes]
@@ -112,12 +190,29 @@ def export_nodes_to_geodataframe(G: nx.classes.graph.Graph, crs: dict):
 
 def dfs_line_search(G: nx.classes.graph.Graph,
                     source: tuple,
-                    break_func: Callable = None):
-    """Meant for a connected graph G to yeild edges in the form [edge_0, edge_1, ..., edge_n]
-    so that edge_0[0] is a (juncture, source, or sink) and edge_n[1] is a (juncture, source, or sink)
-    and all nodes in between have degree 2, that is unique parent and child.
+                    break_func: Callable = None) -> Generator[list]:
+    """
+    Meant for a connected graph G to yeild edges in the form [edge_0, edge_1, ..., edge_n]
+    so that edge_0[0] is a (juncture or degree 1) and edge_n[1] is a (juncture or degree 1)
+    and all nodes in between have degree 2.
 
     Derived from traversal algorithms from networkx.
+
+    Parameters
+    ----------
+    G : nx.classes.graph.Graph
+        Graph to be partitioned
+    source : tuple
+        Starting node to partition edges. Must ensure that source is valid divider (junction or degree 1)
+        otherwise single edge group will be divided into separate groups.
+    break_func : Callable
+        Additional function to break. In this case, we use the `interface_adj` of our channel network
+        to break from a junction because sometimes such a node will not have degree 1.
+
+    Returns
+    -------
+    Generator[list]:
+        List of edges within one edge grouping
     """
     stack = [(source, v) for v in G.neighbors(source)]
     discovered = []
