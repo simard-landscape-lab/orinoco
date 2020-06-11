@@ -452,7 +452,7 @@ def direct_channel_network_using_distance(G: nx.Graph,
     # This must come after edge data to update!
     nx.set_edge_attributes(diG, seg_id_data)
 
-    diG, _ = update_distance_using_graph_structure(diG)
+    diG = update_distance_using_graph_structure(diG)
 
     if remove_danlging_segments:
         for k in range(dangling_iterations):

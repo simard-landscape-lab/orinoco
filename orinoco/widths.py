@@ -465,7 +465,7 @@ def add_flow_attributes_from_network(G: nx.Graph) -> nx.Graph:
     nodes = list(G.nodes())
 
     def get_flow_vector_partial(node):
-        return _get_flow_vector_using_network(node, G, weighted_by_distance=True)
+        return _get_flow_vector_using_network(node, G, weighted_by_inv_distance=True)
     grad_vectors = list(map(get_flow_vector_partial,
                             tqdm(nodes, desc='flow vector computation using network')))
     grad_vectors_perp = list(map(_perp, grad_vectors))

@@ -14,13 +14,21 @@ Notebooks:
 
 We generate the river network using scikit-fmm, skimage, networkx, geopandas, shapely, etc. See example in [notebooks](notebooks) to see how these products are generated.
 
-## Installation
+# Installation
 
-Follow the instructions [here](https://github.com/cmarshak/sari-tutorial) and then additionally install:
+Both of these installations are based on python 3.7+ using anaconda and conda within a separate virtual environment. 
 
-+ networkx
+## Mac
 
-I would just use pip for the above, but do what you like (it's a pure python library). To install rivnet. Navigate to the directory containing this and in your terminal:
+1. `pip install -r requirements.txt`
+2. `conda install cartopy` (this needs some external dependencies)
+3. `pip install .`
 
-`pip install .`
+## Windows
+
+1. 
+
+
+We have related GIS and remote sensing tutorials with more information [here](https://github.com/cmarshak/sari-tutorial).
+
 

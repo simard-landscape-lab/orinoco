@@ -3,7 +3,6 @@ import numpy.ma as ma
 import skfmm
 import numpy as np
 from .nd_tools import (filter_binary_array_by_min_size,
-                       get_features_from_array,
                        get_superpixel_area_as_features,
                        apply_func_to_superpixels,
                        get_array_from_features)
@@ -16,8 +15,7 @@ def get_distance_along_channel_using_fmm(water_mask: np.array,
                                          init_mask: np.array,
                                          dx: float,
                                          dy: float,
-                                         area_threshold: float = 0.,
-                                         minimum_distance_from_init_mask: float = 0) -> np.array:
+                                         area_threshold: float = 0.) -> np.array:
     """
     Obtain distance array from binary mask and initialization mask (the latter representing the ocean).
     Requires specification of resolution, but can trivially set dx=dy=1 for experimentation.
@@ -35,9 +33,6 @@ def get_distance_along_channel_using_fmm(water_mask: np.array,
     area_threshold : float
         Remove connected areas whose pixel size whose relative size is
         below this threshold. Defaults to 0.
-    minimum_distance_from_init_mask : float
-        Removes area within certain distance of init mask
-        After fast-marching is run. Defaults to 0.
 
     Returns
     -------
@@ -55,8 +50,8 @@ def get_distance_along_channel_using_fmm(water_mask: np.array,
     dist_data = dist.data.astype(np.float32)
     # remove areas close to the ocean interface
     dist_mask = mask
-    if minimum_distance_from_init_mask:
-        dist_mask = dist_mask | (dist_data <= minimum_distance_from_init_mask)
+    # We set the ocean to np.nan
+    dist_mask = dist_mask | (dist_data <= 0.)
     dist_data[dist_mask] = np.nan
 
     # Remove Areas that are smaller than 2.5 percent of total area
@@ -103,7 +98,7 @@ def merge_labels_below_minsize(labels: np.array, min_size: int, connectivity: in
             return neighbors[0]
         else:
             return label
-    label_features = apply_func_to_superpixels(merger, labels, labels)
+    label_features = apply_func_to_superpixels(merger, labels, labels, dtype=int)
     labels = get_array_from_features(labels, label_features)
     labels, _, _ = relabel_sequential(labels)
     return labels
@@ -161,10 +156,12 @@ def get_distance_segments(distance: np.array,
         labels = merge_labels_below_minsize(labels, min_size, connectivity=connectivity)
 
     # Obtain labels adjacent to interface
-    distance_pseudo_features = get_features_from_array(labels, dist_threshold).ravel()
-    # weird indexing to avoid warning due to np.nan which occurs at 0.
-    # namely, we ignore index 1 by using [1:] and since argwhere assumes input is properly formed
+    # Look at those after thresholding are within 1 (must look at min after merging)
+    min_distance_features = apply_func_to_superpixels(np.min, labels, dist_threshold).ravel()
+
+    # Weird indexing below to avoid warning due to np.nan which occurs at index 0.
+    # Namely, we ignore index 1 by using [1:] and since argwhere assumes input is properly formed
     # we must add 1 back.
     # Note our features are such that each index corresponds to that label!
-    interface_adjacent_labels = np.argwhere(distance_pseudo_features[1:] < threshold) + 1
+    interface_adjacent_labels = np.argwhere(min_distance_features[1:] < 1) + 1
     return labels, interface_adjacent_labels
