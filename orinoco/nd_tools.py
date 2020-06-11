@@ -2,59 +2,6 @@ import numpy as np
 import scipy.ndimage as nd
 from scipy.ndimage import find_objects
 from typing import Callable
-from functools import wraps
-
-
-def fill_mask_with_constant_value(band_func: Callable = None, *, fill_value: float = 0):
-    """
-    This serves as a decorator to remove a mask in the band_func and fill with fill value.
-
-    @fill_mask_with_constant_value(fill_value=0)
-    def func(arr, mask=mask):
-        ...
-
-    is the same as
-
-    arr_temp = arr.copy()
-    arr_temp[mask] = 0
-    out_img = func(arr_temp)
-    out_img[mask] = arr[mask][0]
-
-    Source: https://stackoverflow.com/questions/3888158/making-decorators-with-optional-arguments
-
-    Parameters
-    ----------
-    band_func : Callable
-        Fucntion to decorate
-    fill_value : float
-        Fill value on mask
-    """
-    def fill_mask(band_func_input):
-        """
-        a wrapper to ensure that mask values are filled with constant, prior
-        to application
-        """
-        @wraps(band_func_input)
-        def band_func_mod(img, *args, **kwargs):
-            if len(img.shape) != 2:
-                raise ValueError('Img must be a 2d array')
-            mask = kwargs.pop('mask', None)
-            if mask is None:
-                mask = np.zeros(img.shape)
-            mask = mask.astype(bool)
-            out_img = img.copy()
-            out_img[mask] = fill_value
-            out_img = band_func_input(out_img, *args, **kwargs)
-            if np.any(mask):
-                out_img[mask] = img[mask][0]
-            return out_img
-        return band_func_mod
-    # occurs when no keyword arguments used (only sees decorated function)
-    if band_func:
-        return fill_mask(band_func)
-    # occurs when keyword arguments used (sees that original_predict is None)
-    else:
-        return fill_mask
 
 
 def get_array_from_features(label_array: np.ndarray, features: np.ndarray) -> np.ndarray:
@@ -224,11 +171,9 @@ def get_superpixel_area_as_features(labels: np.array) -> np.array:
     return apply_func_to_superpixels(np.size, labels, labels).astype(int)
 
 
-@fill_mask_with_constant_value(fill_value=0)
 def filter_binary_array_by_min_size(binary_array: np.ndarray,
                                     min_size: int,
                                     structure: np.ndarray = np.ones((3, 3)),
-                                    mask: np.ndarray = None,
                                     ) -> np.ndarray:
     """
     Look at contigious areas of 1's and if size is less than min_size, remove it.
@@ -242,8 +187,6 @@ def filter_binary_array_by_min_size(binary_array: np.ndarray,
     structure : np.ndarray
         How connectivity is determined. 4-connectivity is np.array([[0, 1, 0], [1, 1, 1], [0, 1, 0]]).
         8-connectivity is np.ones((3, 3)), which is the default.
-    mask : np.ndarray
-        A nodata mask in which True value is nodata. Such nodata areas are filled with 0.
 
     Returns
     -------

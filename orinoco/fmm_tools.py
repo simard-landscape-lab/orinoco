@@ -60,7 +60,7 @@ def get_distance_along_channel_using_fmm(water_mask: np.array,
     if area_threshold > 0.:
         binary_array = (~np.isnan(dist_data)).astype(np.uint8)
         min_size = np.sum(binary_array > 0) * area_threshold
-        size_mask = filter_binary_array_by_min_size(binary_array, min_size, mask=dist_mask).astype(bool)
+        size_mask = filter_binary_array_by_min_size(binary_array, min_size).astype(bool)
         dist_data[~size_mask] = np.nan
 
     return dist_data
