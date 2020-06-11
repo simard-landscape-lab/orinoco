@@ -67,7 +67,7 @@ Below are related projects and rough checklist of the products that can be extra
 
 	- [x] Widths
 	- [x] Centerlines
-	- [] Graph Structure
+	- [ ] Graph Structure
 
 + RivGraph [[repo](https://github.com/jonschwenk/RivGraph)] [[paper](https://esurf.copernicus.org/articles/8/87/2020/)] [[poster](https://www.researchgate.net/publication/329845073_Automatic_Extraction_of_Channel_Network_Topology_RivGraph)] - python
 	
@@ -80,19 +80,19 @@ Below are related projects and rough checklist of the products that can be extra
 
 	- [x] Widths
 	- [x] Centerlines
-	- [] Graph Structure
+	- [ ] Graph Structure
 
 + ChanGeom [[repo](https://www.burchfisher.com/data.html)][[paper](https://www.burchfisher.com/uploads/3/8/8/3/38838315/fisher_etal_geomorph_2013.pdf)] - Matlab
 
 	- [x] Widths
 	- [x] Centerlines
-	- [] Graph Structure
+	- [ ] Graph Structure
 
 + Centerline [[repo](https://github.com/fitodic/centerline)] - python
 
-	- [] Widths
+	- [ ] Widths
 	- [x] Centerlines
-	- [] Graph Structure
+	- [ ] Graph Structure
 
 
 
