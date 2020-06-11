@@ -2,7 +2,7 @@
 
 >Orinoco is a delta in Venezuela and literally means “a place to paddle” in Warao, but refers to a place being navigable.
 
-Orinoco is a tool to leverage python GIS tools to generate river networks from a water mask and a source/sink area (e.g. the ocean).
+Orinoco is a tool to leverage python GIS tools to generate river networks from a water mask and a source/sink area (e.g. the ocean). We generate the river network using scikit-fmm, skimage, networkx, geopandas, shapely, etc. See example in [notebooks](notebooks) to see how these products are generated.
 
 Products:
 
@@ -11,22 +11,18 @@ Products:
 
 ![example](example.png)
 
-Notebooks:
+In our jupyter notebooks, we demontrate:
 
-+ Examples:
-	+ Using Stamen Terrain tiles and Google map tiles, create a simple water mask over the Wax Lake and Atachfalaya River Deltas
-	+ Obtain the channel network and related products
-	+ Compute the normalized entropy rate over the subnetwork related to the Wax Lake Outlet
++ how to use Stamen Terrain tiles and Google map tiles, create a simple water mask over the Wax Lake and Atachfalaya River Deltas
++ how to obtain the channel network and related products with the software tools here
++ how to compute the normalized entropy rate over the subnetwork related to the Wax Lake Outlet
++ how to recreate our validation using the Global River Widths from Landsat (GRWL) Database
 	
-+ Validation with GRWL:
-	+ Compare the widths from GRWL and orinoco over the Mackenzie Delta
-	+ Geographically inspect errors
 
-We generate the river network using scikit-fmm, skimage, networkx, geopandas, shapely, etc. See example in [notebooks](notebooks) to see how these products are generated.
 
 # Installation
 
-Both of these installations are based on python 3.7+ using anaconda and conda within a separate virtual environment.
+Both of these installations are based on python 3.7+ using anaconda and conda within a virtual environment.
 
 ## Generally
 
@@ -58,6 +54,15 @@ These have been tested with anaconda distribution using the conda package manage
 4. `pip install .`
 5. Ensure your python can be found by jupyter via `python -m ipykernel install --user`
 
+You can make sure your installation was done correctly running `python -m "import
+
+# Example Notebooks
+
+Open up a jupyter notebook (using `jupyter-notebook`) and navigate to `notebooks/`. 
+
+1. All the data for `notebooks/examples` will be available including the merged tiles over the Wax Lake and Atchafalaya Rivers. You should be able to run the notebooks (in order) without modification.
+
+2. The `validation_with_grwl` reproduces the validation we perform in our paper. To reproduce the GRWL comparison, you will have to download some data and make sure the notebooks reference their location appropriately on your local machine. We used tile NH08 from [GRWL Database](https://zenodo.org/record/1297434#.XuK6hWpKgUE). We also use the World Water Body Dataset from [here](https://apps.gis.ucla.edu/geodata/dataset/world_water_bodies/resource/a6b40af0-84cb-40ce-b1c5-b024527a6943) as an initialization mask.
 
 # Related Work
 
