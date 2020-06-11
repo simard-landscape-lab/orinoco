@@ -27,7 +27,7 @@ _deprecated/
 build/
 
 # VS Code
-.vscode/
+*.vscode
 
 # Rope Files
 .ropeproject/
