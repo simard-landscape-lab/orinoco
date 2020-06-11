@@ -14,15 +14,6 @@ except ImportError:
         long_description = f.read()
 
 
-def parse_requirements_file(filename):
-    with open(filename, encoding='utf-8') as fid:
-        requires = [l.strip() for l in fid.readlines() if l]
-
-    return requires
-
-
-INSTALL_REQUIRES = parse_requirements_file('requirements.txt')
-
 setup(name='orinoco',
       version='0.1dev',
 
@@ -38,5 +29,5 @@ setup(name='orinoco',
       packages=['orinoco'],  # setuptools.find_packages(exclude=['doc']),
 
       # Required Packages
-      install_requires=INSTALL_REQUIRES,
+      install_requires=[],
       )
