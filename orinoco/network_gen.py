@@ -59,8 +59,7 @@ def get_undirected_channel_network(segment_labels: np.ndarray,
         A function f(a, b), where `a` and `b` are 2d tuples representing positions.
         In other words, a, b in R^2. Defaults to the normal L2 difference.
     connectivity : int
-        4- or 8-connectivity for determining adjacency of derived pixes.
-        4-connectivity means pixel neighbors must be in horizontally or vertically
+        4- or 8-connectivity for determining adjacency of derived pixes. 4-connectivity means pixel neighbors must be in horizontally or vertically
         adjacenet. 8-connectivity adds diagaonal adjacency. Defaults to 8.
         See: https://en.wikipedia.org/wiki/Pixel_connectivity
 
