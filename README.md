@@ -2,7 +2,7 @@
 
 >Orinoco is a delta in Venezuela and literally means “a place to paddle” in Warao, but refers to a place being navigable.
 
-Orinoco is a tool to leverage python GIS tools to generate river networks from a water mask and a source/sink area (e.g. the ocean). We generate the river network using scikit-fmm, skimage, networkx, geopandas, shapely, etc. See example in [notebooks](notebooks) to see how these products are generated.
+Orinoco is a tool to leverage python GIS tools to generate river networks from a water mask (in UTM) and a source/sink area (e.g. the ocean). We generate the river network using scikit-fmm, skimage, networkx, geopandas, shapely, etc. See example in [notebooks](notebooks) to see how these products are generated.
 
 Products:
 

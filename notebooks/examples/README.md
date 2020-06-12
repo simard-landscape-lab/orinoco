@@ -27,7 +27,7 @@ We will describe some ways we have generated effective river masks from open dat
 
 
 + There are open tile servers such as Open street map, Stamen, etc. These maps are what are used here. The servers for the pngs and zoom levels for some can be found [here](https://wiki.openstreetmap.org/wiki/Tile_servers). I used the open source tile merger [Stitch](https://github.com/ericfischer/tile-stitch). I am sure there are alternatives such as [this](https://github.com/jimutt/tiles-to-tiff), but stitch worked the best.
-	+ **Warning**: Stitch doesn't allow images to be larger than `10,000 x 10,000` - pick the zoom appropriately or be ready to [`gdal_merge.py`](https://gdal.org/programs/gdal_merge.html) the tiles together.
+	+ **Warning**: Stitch doesn't allow images to be larger than total size [`10,000 x 10,000`](https://github.com/ericfischer/tile-stitch/blob/master/stitch.c#L290-L293) - pick the zoom appropriately or be ready to [`gdal_merge.py`](https://gdal.org/programs/gdal_merge.html) the tiles together after downloading them.
 	+ **Warning**: Large downloads are discouraged for open servers.
 	+ **Warning**: Can use google maps as well (including satellite) though there are rate limitations, and if you experiment too much, you will be booted for at least 24 hours (in my experience).
 
