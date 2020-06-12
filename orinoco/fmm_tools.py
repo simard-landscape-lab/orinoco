@@ -188,4 +188,5 @@ def get_distance_segments(distance: np.array,
     # we must add 1 back.
     # Note our features are such that each index corresponds to that label!
     interface_adjacent_labels = np.argwhere(min_distance_features[1:] < 1) + 1
-    return labels, interface_adjacent_labels
+    # We will flatten the interface_adjacent_labels
+    return labels, interface_adjacent_labels.ravel()
