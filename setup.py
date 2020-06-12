@@ -29,5 +29,6 @@ setup(name='orinoco',
       packages=['orinoco'],  # setuptools.find_packages(exclude=['doc']),
 
       # Required Packages
+      # We assume an environment specified by requirements.txt is provided
       install_requires=[],
       )

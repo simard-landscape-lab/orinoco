@@ -16,14 +16,16 @@ There are two examples included here using
 
 which refer to `<tile_server>_<zoom_level>`. The notebooks navigate through the application and analysis of the river network and the generation of the relevant figures. See below how to obtain the above tif files associated with the tile server.
 
+We note that to create the complete Orinoco products (and inspect them in related GIS viewers), **only notebooks 1 and 2 are required**. Notebooks 3 and 4 are to create the plots from our paper using rasterio plotting functionality. Notebook 4 illustrates how to use these products compute the normalized entropy rate.
+
 
 ## Addendum on River Masks
 
-River masks are hard. Shouldn't be a surprise.
+Water masks are hard. Shouldn't be a surprise.
 
-It is not our goal here to figure out how to create new water masks, but rather to obtain and utilize existing water masks to generate a network. Although satellite imagery offers high resolution pictures of the current state of a river body, there are numerous challenges creating a useable river mask especially one with high resolution.
+It is not our goal here to figure out how to create these masks, but rather to obtain and utilize existing water masks to generate a network. Although satellite imagery offers high resolution pictures of the current state of a river body, there are numerous challenges creating a useable water mask especially one with high resolution.
 
-We will describe some ways we have generated effective river masks from open data sources that are quick. 
+We describe a simple method for generating a water mask from open data sources. The method is globally applicable, but is based on Open Street Map and Google Maps, not on remote sensing data. Below are some notes about creating water masks and related data sources.
 
 
 + There are open tile servers such as Open street map, Stamen, etc. These maps are what are used here. The servers for the pngs and zoom levels for some can be found [here](https://wiki.openstreetmap.org/wiki/Tile_servers). I used the open source tile merger [Stitch](https://github.com/ericfischer/tile-stitch). I am sure there are alternatives such as [this](https://github.com/jimutt/tiles-to-tiff), but stitch worked the best.
