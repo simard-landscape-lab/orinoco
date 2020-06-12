@@ -39,7 +39,7 @@ def get_undirected_channel_network(segment_labels: np.ndarray,
                                    profile: dict,
                                    interface_segment_labels: list,
                                    edge_distance_func: Callable = l2_difference,
-                                   connectivity: int = 4) -> nx.classes.graph.Graph:
+                                   connectivity: int = 8) -> nx.classes.graph.Graph:
     """
     Obtain an undirected network from segments and distance array.
 
@@ -60,6 +60,9 @@ def get_undirected_channel_network(segment_labels: np.ndarray,
         In other words, a, b in R^2. Defaults to the normal L2 difference.
     connectivity : int
         4- or 8-connectivity for determining adjacency of derived pixes.
+        4-connectivity means pixel neighbors must be in horizontally or vertically
+        adjacenet. 8-connectivity adds diagaonal adjacency. Defaults to 8.
+        See: https://en.wikipedia.org/wiki/Pixel_connectivity
 
     Returns
     -------
@@ -67,11 +70,11 @@ def get_undirected_channel_network(segment_labels: np.ndarray,
         The graph from NetworkX to be returned. The graph has the following attributes:
 
         Nodes: (x, y)
-            + label - segment label associated with node (int)
-            + 'meters_to_interface' - distance determined using (x, y) position on dist (float)
-            + x - x-position (float)
-            + y - y-position (float)
-            + interface_adj - adjacency to interface from FMM (bool)
+            + label : segment label associated with node (int)
+            + 'meters_to_interface' : distance determined using (x, y) position on dist (float)
+            + x : x-position (float)
+            + y : y-position (float)
+            + interface_adj : adjacency to interface from FMM (bool)
         Edges: ((x1, y1), (x2, y2))
             + length: value from edge_distance_func, defaults to UTM (float)
             + weight: same as length (float)

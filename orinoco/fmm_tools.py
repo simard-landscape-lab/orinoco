@@ -2,6 +2,7 @@ from skimage import measure
 import numpy.ma as ma
 import skfmm
 import numpy as np
+import scipy.ndimage as nd
 from .nd_tools import (filter_binary_array_by_min_size,
                        get_superpixel_area_as_features,
                        apply_func_to_superpixels,
@@ -15,7 +16,8 @@ def get_distance_along_channel_using_fmm(water_mask: np.array,
                                          init_mask: np.array,
                                          dx: float,
                                          dy: float,
-                                         area_threshold: float = 0.) -> np.array:
+                                         area_threshold: float = 0.,
+                                         apply_pixel_buffer_for_distance_comp: bool = True) -> np.array:
     """
     Obtain distance array from binary mask and initialization mask (the latter representing the ocean).
     Requires specification of resolution, but can trivially set dx=dy=1 for experimentation.
@@ -33,6 +35,13 @@ def get_distance_along_channel_using_fmm(water_mask: np.array,
     area_threshold : float
         Remove connected areas whose pixel size whose relative size is
         below this threshold. Defaults to 0.
+    apply_pixel_buffer_for_distance_comp : bool
+        Whether or not to apply a 1 distance pixel buffer using ndimage `nd.morphology.binary_dilation`
+        prior to distance computation. Because the distance requires 4-connectivity through channels
+        such a buffer permits distance computations through diagonal pixels as indicated
+        [here](https://github.com/scikit-fmm/scikit-fmm/issues/32). However such a buffer could lead
+        to unexpected changes in channel topology. We remove this buffer at the end of the distance computation
+        to avoid subsequent challenges and ensure width is computed correctly later. The default value is True.
 
     Returns
     -------
@@ -40,8 +49,18 @@ def get_distance_along_channel_using_fmm(water_mask: np.array,
        Distance array, same dimensions as water_mask with nodata areas having value np.nan
     """
 
-    mask = ~(water_mask.astype(bool))
-    phi = ma.masked_array(np.ones(water_mask.shape), mask=mask)
+    # Apply a 1 pixel buffer to water areas if
+    # `apply_pixel_buffer_for_distance_comp` is True.
+    if apply_pixel_buffer_for_distance_comp:
+        water_mask_d = nd.morphology.binary_dilation(water_mask,
+                                                     iterations=1,
+                                                     border_value=0,
+                                                     structure=np.ones((3, 3)))
+    else:
+        water_mask_d = water_mask
+
+    mask = ~(water_mask_d.astype(bool))
+    phi = ma.masked_array(np.ones(water_mask_d.shape), mask=mask)
     phi.data[init_mask.astype(bool)] = 0
 
     dist = skfmm.distance(phi, dx=(dy, dx))
@@ -62,6 +81,11 @@ def get_distance_along_channel_using_fmm(water_mask: np.array,
         min_size = np.sum(binary_array > 0) * area_threshold
         size_mask = filter_binary_array_by_min_size(binary_array, min_size).astype(bool)
         dist_data[~size_mask] = np.nan
+
+    if apply_pixel_buffer_for_distance_comp:
+        # Ensure that the original land areas are land
+        # for subsequent processing including widths
+        dist[~water_mask.astype(bool)] = np.nan
 
     return dist_data
 
