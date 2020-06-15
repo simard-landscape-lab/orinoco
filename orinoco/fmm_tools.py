@@ -12,52 +12,63 @@ from .nx_tools import get_RAG_neighbors
 from skimage.segmentation import relabel_sequential
 
 
-def get_distance_along_channel_using_fmm(water_mask: np.array,
-                                         init_mask: np.array,
-                                         dx: float,
-                                         dy: float,
-                                         area_threshold: float = 0.,
-                                         apply_pixel_buffer_for_distance_comp: bool = True) -> np.array:
+def get_distance_in_channel(water_mask: np.array,
+                            init_mask: np.array,
+                            dx: float,
+                            dy: float,
+                            min_rel_area: float = 0.,
+                            apply_mask_buffer: bool = True) -> np.array:
     """
-    Obtain distance array from binary mask and initialization mask (the latter representing the ocean).
-    Requires specification of resolution, but can trivially set dx=dy=1 for experimentation.
+    Obtain distance array from binary mask and initialization mask (the latter
+    representing the ocean) using the fast-marching method from (Sethian,
+    1996).  Requires specification of resolution, but can trivially set
+    `dx=dy=1` for experimentation.
 
     Parameters
     ----------
     water_mask : np.array
-        Binary water mask (will be recast to boolean)
+        Binary water mask (will be recast to boolean). True is where water is
+        and False is where water is not.
     init_mask : np.array
-        Ocean mask or the region where we want our flow to originate
+        Ocean mask or the region where we want our flow to originate. True is
+        where ocean is and False is where ocean is not.
     dx : float
         Horizontal resolution
     dy : float
         Vertical Resolution
-    area_threshold : float
-        Remove connected areas whose pixel size whose relative size is
-        below this threshold. Defaults to 0.
-    apply_pixel_buffer_for_distance_comp : bool
-        Whether or not to apply a 1 distance pixel buffer using ndimage `nd.morphology.binary_dilation`
-        prior to distance computation. Because the distance requires 4-connectivity through channels
-        such a buffer permits distance computations through diagonal pixels as indicated
-        [here](https://github.com/scikit-fmm/scikit-fmm/issues/32). However such a buffer could lead
-        to unexpected changes in channel topology. We remove this buffer at the end of the distance computation
-        to avoid subsequent challenges and ensure width is computed correctly later. The default value is True.
+    min_rel_area : float
+        Remove connected areas whose relative contiguous area is
+        below this value. Defaults to 0, i.e. nothing is removed.
+    apply_mask_buffer : bool
+        Whether or not to apply a 1 pixel buffer using ndimage
+        `nd.morphology.binary_dilation` prior to distance computation. Because
+        the distance requires 4-connectivity (i.e. a 4-stencil) through
+        channels such a buffer artficially permits distance computations
+        through diagonal pixels.  This is related to the problem that is
+        discussed [here](https://github.com/scikit-fmm/scikit-fmm/issues/32).
+        However such a buffer may lead to unexpected changes in channel
+        topology. We remove this buffer at the end of the distance computation
+        to avoid subsequent challenges when width is computed correctly later.
+        The buffer is removed using `nd.morphology.binary_dilation` to ensure
+        the topology of the distance computation is preserved even if it
+        ultimately changes the mask. The default value is True.
 
     Returns
     -------
     np.array:
-       Distance array, same dimensions as water_mask with nodata areas having value np.nan
+       Distance array, same dimensions as water_mask with nodata areas having
+       value `np.nan`.
     """
 
     # Apply a 1 pixel buffer to water areas if
-    # `apply_pixel_buffer_for_distance_comp` is True.
-    if apply_pixel_buffer_for_distance_comp:
+    # `apply_mask_buffer` is True.
+    if apply_mask_buffer:
         water_mask_d = nd.morphology.binary_dilation(water_mask,
                                                      iterations=1,
                                                      border_value=0,
                                                      structure=np.ones((3, 3)))
     else:
-        water_mask_d = water_mask
+        water_mask_d = water_mask.copy()
 
     mask = ~(water_mask_d.astype(bool))
     phi = ma.masked_array(np.ones(water_mask_d.shape), mask=mask)
@@ -73,35 +84,46 @@ def get_distance_along_channel_using_fmm(water_mask: np.array,
     dist_mask = dist_mask | (dist_data <= 0.)
     dist_data[dist_mask] = np.nan
 
-    # Remove Areas that are smaller than 2.5 percent of total area
-    # The ocean mask and the water mask may not agree near the interface and this removes
-    # Areas of erroneous additions
-    if area_threshold > 0.:
-        binary_array = (~np.isnan(dist_data)).astype(np.uint8)
-        min_size = np.sum(binary_array > 0) * area_threshold
-        size_mask = filter_binary_array_by_min_size(binary_array, min_size).astype(bool)
-        dist_data[~size_mask] = np.nan
-
-    if apply_pixel_buffer_for_distance_comp:
+    if apply_mask_buffer:
         # Ensure that the original land areas are land
         # for subsequent processing including widths
-        dist[~water_mask.astype(bool)] = np.nan
+        water_mask_e = nd.morphology.binary_erosion(water_mask_d,
+                                                    iterations=1,
+                                                    border_value=0,
+                                                    structure=np.ones((3, 3)))
+        dist_data[~water_mask_e.astype(bool)] = np.nan
+
+    # Remove Areas that are smaller than min_rel_area of total area The ocean
+    # mask and the water mask may not agree near the interface and this removes
+    # Areas of erroneous additions
+    if min_rel_area > 0.:
+        binary_array = (~np.isnan(dist_data)).astype(np.uint8)
+        min_size = np.sum(binary_array > 0) * min_rel_area
+        size_mask = filter_binary_array_by_min_size(binary_array,
+                                                    min_size).astype(bool)
+        dist_data[~size_mask] = np.nan
 
     return dist_data
 
 
-def merge_labels_below_minsize(labels: np.array, min_size: int, connectivity: int = 4) -> np.array:
+def merge_labels_below_minsize(labels: np.array,
+                               min_size: int,
+                               connectivity: int = 8) -> np.array:
     """
-    Takes labels below min_size and merges a label with a connected neighbor (with respect to the connectivity description).
+    Takes labels below min_size and merges a label with a connected neighbor
+    (with respect to the connectivity description). Ignores label 0 as
+    background.
 
     Parameters
     ----------
     labels : np.array
-        2d label array.
+        2d label array. Assumes 0 is background and ignores.
     min_size : int
-        Keeps only segments of at least this size
+        Keeps only segments of at least this size.
     connectivity : int
-        4 or 8 connectivity accepted.
+        4 or 8 connectivity accepted. Default 8. If
+        `apply_mask_buffer` was used to compute distance,
+        then connectivity must be 8.
 
         See: https://en.wikipedia.org/wiki/Pixel_connectivity
 
@@ -109,20 +131,33 @@ def merge_labels_below_minsize(labels: np.array, min_size: int, connectivity: in
     -------
     np.array:
         Updated 2d label array
+
+    Note
+    ----
+    Does not recursively update size and simply assigns a label to its
+    neighbor.
     """
     size_features = get_superpixel_area_as_features(labels)
     unique_labels = np.arange(0, labels.max() + 1)
-    labels_to_merge = unique_labels[size_features.ravel() < min_size]
-    neighbor_dict = get_RAG_neighbors(labels, label_subset=labels_to_merge, connectivity=connectivity)
+    labels_to_merge = list(unique_labels[size_features.ravel() < min_size])
+    neighbor_dict = get_RAG_neighbors(labels,
+                                      label_subset=labels_to_merge,
+                                      connectivity=connectivity)
 
     def merger(label_arr):
         label = label_arr[0]
         neighbors = neighbor_dict.get(label)
-        if neighbors is not None and len(neighbors) > 0:
-            return neighbors[0]
-        else:
+        # Do nothing if label is background or doesn't meet size criterion.
+        if (label == 0) or (label not in labels_to_merge):
             return label
-    label_features = apply_func_to_superpixels(merger, labels, labels, dtype=int)
+        if len(neighbors) > 0:
+            return neighbors[0]
+        # If neighbor is isolated then assign it to background
+        else:
+            return 0
+    label_features = apply_func_to_superpixels(merger,
+                                               labels,
+                                               labels, dtype=int)
     labels = get_array_from_features(labels, label_features)
     labels, _, _ = relabel_sequential(labels)
     return labels
@@ -132,18 +167,19 @@ def get_distance_segments(distance: np.array,
                           n_pixel_threshold: int,
                           dx: float,
                           dy: float,
-                          connectivity: int = 4,
+                          connectivity: int = 8,
                           min_size: int = 4) -> tuple:
     """
-
+    Obtain the segments determined by distance and threshold. UPDATE DOCSTRING
 
     Parameters
     ----------
     distance : np.array
         Distance array determined using fmm
     n_pixel_threshold : int
-        Segments are determined according to int(distance / threshold), ensuring connectivity, where
-        threshold = min(dx, dy) * n_pixel_threshold.
+        Segments are determined according to int(distance / threshold),
+        ensuring connectivity, where threshold = min(dx, dy) *
+        n_pixel_threshold.
     dx : float
         Horizontal resolution
     dy : float
@@ -152,16 +188,18 @@ def get_distance_segments(distance: np.array,
         4 or 8 connectivity accepted.
         See: https://en.wikipedia.org/wiki/Pixel_connectivity
     min_size : int
-       Minimum Segment size. Default 4.
+       Minimum Segment size in pixels. Default 4.
 
     Returns
     -------
     tuple:
        labels, interface_adjacent_labels
 
-        + labels is a 2d array with the segmentation in which each pixel corresponds to a segment label.
-        + interface_adjacent_labels is an array of labels adjacent to the interface determined via dist,
-        namely those segments less than threshold
+        + labels is a 2d array with the segmentation in which each pixel
+        corresponds to a segment label.
+        + interface_adjacent_labels is an array of labels adjacent to the
+        interface determined via dist, namely those segments less than
+        threshold
     """
     threshold = min(dx, dy) * n_pixel_threshold
     dist_threshold = (distance / threshold)
@@ -171,22 +209,28 @@ def get_distance_segments(distance: np.array,
     dist_temp[np.isnan(dist_threshold)] = 0
     dist_temp = dist_temp.astype(np.int32)
 
-    # 4-connectivty is 1-hop connectivity for skimage.measure.label and similarly 8-connectivity is
-    # called 2-hop connectivity.
+    # 4-connectivty is 1-hop connectivity for skimage.measure.label and
+    # similarly 8-connectivity is called 2-hop connectivity.
     connectivity_label = 2 if connectivity == 8 else 1
-    labels = measure.label(dist_temp, background=0, connectivity=connectivity_label).astype(np.int32)
+    labels = measure.label(dist_temp,
+                           background=0,
+                           connectivity=connectivity_label).astype(np.int32)
 
     if min_size is not None:
-        labels = merge_labels_below_minsize(labels, min_size, connectivity=connectivity)
+        labels = merge_labels_below_minsize(labels,
+                                            min_size,
+                                            connectivity=connectivity)
 
-    # Obtain labels adjacent to interface
-    # Look at those after thresholding are within 1 (must look at min after merging)
-    min_distance_features = apply_func_to_superpixels(np.min, labels, dist_threshold).ravel()
+    # Obtain labels adjacent to interface Look at those after thresholding are
+    # within 1 (must look at min after merging)
+    min_distance_features = apply_func_to_superpixels(np.min,
+                                                      labels,
+                                                      dist_threshold).ravel()
 
-    # Weird indexing below to avoid warning due to np.nan which occurs at index 0.
-    # Namely, we ignore index 1 by using [1:] and since argwhere assumes input is properly formed
-    # we must add 1 back.
-    # Note our features are such that each index corresponds to that label!
+    # Weird indexing below to avoid warning due to np.nan which occurs at index
+    # 0.  Namely, we ignore index 1 by using [1:] and since argwhere assumes
+    # input is properly formed we must add 1 back.  Note our features are such
+    # that each index corresponds to that label!
     interface_adjacent_labels = np.argwhere(min_distance_features[1:] < 1) + 1
     # We will flatten the interface_adjacent_labels
     return labels, interface_adjacent_labels.ravel()

@@ -1,5 +1,5 @@
-import geopandas as gpd
 import networkx as nx
+import geopandas as gpd
 from shapely.geometry import LineString, Point
 import pandas as pd
 import scipy.ndimage as nd
@@ -239,9 +239,8 @@ def dfs_line_search(G: nx.classes.graph.Graph,
         divider (junction or degree 1) otherwise single edge group will be
         divided into separate groups.
     break_func : Callable
-        Additional function to break. In this case, we use the `interface_adj`
-        of our channel network to break from a junction because sometimes such
-        a node will not have degree 1.
+        Additional function to break. In this case, we use the `interface_adj` of our channel network
+        to break from a junction because sometimes such a node will not have degree 1.
 
     Returns
     -------
@@ -271,22 +270,19 @@ def dfs_line_search(G: nx.classes.graph.Graph,
                 # Undirected case
                 # Degree > 2
                 if not G.is_directed() and (G.degree(child) > 2):
-                    new_edges = [(child, v)
-                                 for v in G.neighbors(child) if v != parent]
+                    new_edges = [(child, v) for v in G.neighbors(child) if v != parent]
                     stack += new_edges
                     break
 
                 # Directed case; check in degree and out degree separately
                 if G.is_directed() and ((G.out_degree(child) > 1) or
                                         (G.in_degree(child) > 1)):
-                    new_edges = [(child, v)
-                                 for v in G.neighbors(child) if v != parent]
+                    new_edges = [(child, v) for v in G.neighbors(child) if v != parent]
                     stack += new_edges
                     break
 
                 if break_func is not None and break_func(child):
-                    new_edges = [(child, v)
-                                 for v in G.neighbors(child) if v != parent]
+                    new_edges = [(child, v) for v in G.neighbors(child) if v != parent]
                     stack += new_edges
                     break
 

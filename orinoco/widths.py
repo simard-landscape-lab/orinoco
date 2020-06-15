@@ -430,6 +430,9 @@ def _get_flow_vector_using_network(node: tuple,
     neighbor_vectors_stacked = np.stack(neighbor_vectors, axis=0)
 
     norms = np.linalg.norm(neighbor_vectors_stacked, axis=1).reshape((neighbor_vectors_stacked.shape[0], -1))
+    if np.sum(norms == 0) > 0:
+        print(node)
+        import pdb; pdb.set_trace()
     neighbor_unit_vectors_stacked = neighbor_vectors_stacked / norms
 
     if clip_junction_neigbors:
@@ -517,7 +520,7 @@ def add_flow_attributes(G: nx.Graph, dist_arr: np.ndarray, transform: affine.Aff
 ##################
 
 
-def get_segment_df(segments_arr: np.ndarray, G: nx.Graph, profile: dict) -> gpd.GeoDataFrame:
+def get_segment_df(segments_arr: np.ndarray, G: nx.Graph, profile: dict, connectivity: int = 4) -> gpd.GeoDataFrame:
     """
     Gets segment dataframe and appends data relevant for additional width computation.
 
@@ -534,6 +537,10 @@ def get_segment_df(segments_arr: np.ndarray, G: nx.Graph, profile: dict) -> gpd.
         RAG graph associated with segments
     profile : dict
         Rasterio profile associated with segment_arr
+    connectivity : int
+        4 or 8 connectivity accepted.
+
+        See: https://en.wikipedia.org/wiki/Pixel_connectivity
 
     Returns
     -------
@@ -541,11 +548,16 @@ def get_segment_df(segments_arr: np.ndarray, G: nx.Graph, profile: dict) -> gpd.
         A dataframe in which each geometry is a polygon associated with a contigious segment.
 
         We also include perimieter, node (pos_x, pos_y), label, and flow_vector_perp (for widths)
+
+    Note
+    ----
+    Not every segment may have a node and corresponding node attributes because we have pruned them previously.
+    We remove those nodes that are not apart of G.
     """
     geo_features = get_geopandas_features_from_array(segments_arr.astype(np.int32),
                                                      profile['transform'],
                                                      mask=(segments_arr == 0),
-                                                     connectivity=4)
+                                                     connectivity=connectivity)
     df_segments = gpd.GeoDataFrame.from_features(geo_features, crs=profile['crs'])
 
     node_data = dict(G.nodes(data=True))

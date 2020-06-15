@@ -1,29 +1,27 @@
-# Notebooks
+# Examples
 
-These notebooks represent the applications of our RivNet to obtain river networks using map tiles. These notebooks could easily be modified so long as there is:
+These notebooks represent the applications of our `Orinoco` to obtain channel networks in deltaic regions using map tiles. These notebooks could easily be modified so long as there is:
 
-1. a river/channel mask
-2. an interface (represented as a sink mask) - for example an ocean mask (source mask) to indicate where the river runs into the ocean (interface)
+1. a channel mask
+2. an interface (represented as a sink mask) - for example an ocean mask (source mask) to indicate where the channel runs into the ocean (interface)
 
 The data is included, but we discuss how to obtain the data elsewhere for later use.
 
-## The Notebooks
+## Using the Notebooks
 
-There are two examples included here using 
+The notebooks need to be run in order (0, 1, 2, 3, 4) with a *fixed map tile name*. There are two options: 
 
 1. `stamen_terrain_12` and 
-2. `google_16` 
+2. `google_16`
 
-which refer to `<tile_server>_<zoom_level>`. The notebooks navigate through the application and analysis of the river network and the generation of the relevant figures. See below how to obtain the above tif files associated with the tile server.
-
-We note that to create the complete Orinoco products (and inspect them in related GIS viewers), **only notebooks 1 and 2 are required**. Notebooks 3 and 4 are to create the plots from our paper using rasterio plotting functionality. Notebook 4 illustrates how to use these products compute the normalized entropy rate.
+which refer to `<tile_server>_<zoom_level>`. We recommend using notebooks with the `stamen_terrain_12` option first because the `google_16` merged tiff is quite large and each step requires will require longer to complete. We also note that to create the complete Orinoco products (and inspect them in related GIS viewers), **only notebooks 1 and 2 are required**. Notebooks 3 and 4 are to create the plots from our report using rasterio plotting functionality. Notebook 4 illustrates how to use the products from 1 and 2 compute the normalized entropy rate.
 
 
-## Addendum on River Masks
+## Addendum on Water Masks
 
 Water masks are hard. Shouldn't be a surprise.
 
-It is not our goal here to figure out how to create these masks, but rather to obtain and utilize existing water masks to generate a network. Although satellite imagery offers high resolution pictures of the current state of a river body, there are numerous challenges creating a useable water mask especially one with high resolution.
+It is not our goal here to figure out how to create these masks, but rather to obtain and utilize existing water masks to generate a network. Although satellite imagery offers high resolution pictures of the current state of a channels, there are numerous challenges creating a useable water mask especially one with high resolution.
 
 We describe a simple method for generating a water mask from open data sources. The method is globally applicable, but is based on Open Street Map and Google Maps, not on remote sensing data. Below are some notes about creating water masks and related data sources.
 
@@ -52,7 +50,7 @@ We describe a simple method for generating a water mask from open data sources. 
 + [GRWL](https://zenodo.org/record/1297434#.XcywsEVKjUI) - these products are from Allen / Pavelsky and are derived using the Peckel data. So they too have *global coverage*!
 	+ **Warning**: Tiles are in UTM and each tile has specific UTM zone.
 	+ **Warning**: The naming convention for GRWL tiles is not UTM!
-	+ **Warning**: Adjacent tiles may not overlap well in that the rivers are disconnected.
+	+ **Warning**: Adjacent tiles may not overlap well in that the river channels are disconnected.
 	+ **Warning**: Poor coverage over deltaic areas.
 
 	
