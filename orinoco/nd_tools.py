@@ -165,13 +165,17 @@ def apply_func_to_superpixels(func: Callable,
         raise ValueError('The array must be a 2d array')
     labels_ = labels + 1
     labels_unique = np.unique(labels_)
-    features = nd.labeled_comprehension(array, labels_, labels_unique, func, dtype, np.nan)
+    features = nd.labeled_comprehension(array,
+                                        labels_,
+                                        labels_unique,
+                                        func, dtype, np.nan)
     return features.reshape((-1, 1))
 
 
 def get_superpixel_area_as_features(labels: np.array) -> np.array:
     """
-    Obtain a feature array in which features are size of corresponding features.
+    Obtain a feature array in which features are size of corresponding
+    features.
 
     Parameters
     ----------
@@ -191,7 +195,8 @@ def filter_binary_array_by_min_size(binary_array: np.ndarray,
                                     structure: np.ndarray = np.ones((3, 3)),
                                     ) -> np.ndarray:
     """
-    Look at contigious areas of 1's and if size is less than min_size, remove it.
+    Look at contigious areas of 1's in binary array and remove those areas with
+    less than `min_size`, remove it.
 
     Parameters
     ----------
@@ -200,26 +205,32 @@ def filter_binary_array_by_min_size(binary_array: np.ndarray,
     min_size : int
         Minimum size
     structure : np.ndarray
-        How connectivity is determined. 4-connectivity is np.array([[0, 1, 0], [1, 1, 1], [0, 1, 0]]).
-        8-connectivity is np.ones((3, 3)), which is the default.
+        How pixel connectivity is determined e.g.
+        + 4-connectivity is np.array([[0, 1, 0], [1, 1, 1], [0, 1, 0]]).
+        + 8-connectivity is np.ones((3, 3)), which is the default.
 
     Returns
     -------
     np.ndarray:
-       binary array in which small continguous areas fo size less than min_size have been removed.
+       binary array in which small continguous areas 1's of size less than
+       min_size have been removed.
     """
 
     binary_array_temp = binary_array[~np.isnan(binary_array)]
     if ~((binary_array_temp == 0) | (binary_array_temp == 1)).all():
         raise ValueError('Array must be binary!')
-    connected_component_labels, _ = nd.measurements.label(binary_array, structure=structure)
+    connected_component_labels, _ = nd.measurements.label(binary_array,
+                                                          structure=structure)
     size_features = get_superpixel_area_as_features(connected_component_labels)
-    binary_features = get_features_from_array(connected_component_labels, binary_array)
+    binary_features = get_features_from_array(connected_component_labels,
+                                              binary_array)
 
     # Only want 1s of certain size
-    filtered_size_features = (size_features >= min_size).astype(int) * binary_features
+    filtered_size_features = ((size_features >= min_size).astype(int) *
+                              binary_features)
 
-    binary_array_filtered = get_array_from_features(connected_component_labels, filtered_size_features)
+    binary_array_filtered = get_array_from_features(connected_component_labels,
+                                                    filtered_size_features)
     return binary_array_filtered
 
 
@@ -227,9 +238,8 @@ def scale_img(img: np.ndarray,
               new_min: int = 0,
               new_max: int = 1) -> np.ndarray:
     """
-    Scale an image by the absolute max and min in the array to have dynamic range new_min to new_max.
-
-    Useful for visualization.
+    Scale an image by the absolute max and min in the array to have dynamic
+    range new_min to new_max. Useful for visualization.
 
     Parameters
     ----------
@@ -247,5 +257,6 @@ def scale_img(img: np.ndarray,
     if i_min == i_max:
         # then image is constant image and clip between new_min and new_max
         return np.clip(img, new_min, new_max)
-    img_scaled = (img - i_min) / (i_max - i_min) * (new_max - new_min) + new_min
+    img_scaled = (img - i_min) / (i_max - i_min) * (new_max - new_min)
+    img_scaled += new_min
     return img_scaled

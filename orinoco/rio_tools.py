@@ -17,7 +17,8 @@ def get_geopandas_features_from_array(arr: np.ndarray,
                                       mask: np.ndarray = None,
                                       connectivity: int = 4) -> list:
     """
-    Obtains a list of geopandas features in which contigious integers are grouped as polygons for use as:
+    Obtains a list of geopandas features in which contigious integers are
+    grouped as polygons for use as:
 
         df =  gpd.GeoDataFrame.from_features(geo_features)
 
@@ -30,7 +31,8 @@ def get_geopandas_features_from_array(arr: np.ndarray,
     transform : Affine
         Rasterio transform related to arr
     label_name : str
-        The label name used for each different polygonal feature, default is `label`.
+        The label name used for each different polygonal feature, default is
+        `label`.
     mask : np.ndarray
         Nodata mask in which true values indicate where nodata is located.
     connectivity : int
@@ -62,9 +64,10 @@ def polygonize_array_to_shapefile(arr: np.ndarray,
                                   mask: np.ndarray = None,
                                   connectivity: int = 4):
     """
-    Directly a polygonal shapefile from an array of integers grouping pixels with the same value together.
-
-    Polygons with contiguous value in array will have attribute determined by `label_name` and value determined by arr.
+    Directly create a polygonal shapefile from an array of integers grouping
+    pixels with the same value together into a polygon. Polygons with
+    contiguous value in array will have attribute determined by `label_name`
+    and value determined by arr.
 
     Parameters
     ----------
@@ -73,14 +76,16 @@ def polygonize_array_to_shapefile(arr: np.ndarray,
     profile : dict
         Rasterio profile corresponding to arr.
     shape_file_dir : str
-        The string of the path to saved shapefile. Assumes parent directories exist.
+        The string of the path to saved shapefile. Assumes parent directories
+        exist.
     label_name : str
         The attribute name used in the shapefile.
     mask : np.ndarray
-        Removes polygons associated with a nodata mask. True values are where the nodata are located in arr.
+        Removes polygons associated with a nodata mask. True values are where
+        the nodata are located in arr.
     connectivity : int
-        4- or 8- connectivity of the polygonal features.
-        See rasterio: https://rasterio.readthedocs.io/en/latest/api/rasterio.features.html#rasterio.features.shapes
+        4- or 8- connectivity of the polygonal features.  See rasterio:
+        https://rasterio.readthedocs.io/en/latest/api/rasterio.features.html#rasterio.features.shapes
         And see: https://en.wikipedia.org/wiki/Pixel_connectivity
     """
     dtype = str(arr.dtype)
@@ -95,7 +100,11 @@ def polygonize_array_to_shapefile(arr: np.ndarray,
         dtype_for_shape_file = 'float'
 
     crs = profile['crs']
-    results = get_geopandas_features_from_array(arr, profile['transform'], label_name='label', mask=mask, connectivity=connectivity)
+    results = get_geopandas_features_from_array(arr,
+                                                profile['transform'],
+                                                label_name='label',
+                                                mask=mask,
+                                                connectivity=connectivity)
     with fiona.open(shape_file_dir, 'w',
                     driver='ESRI Shapefile',
                     crs=crs,
@@ -110,9 +119,10 @@ def rasterize_shapes_to_array(shapes: list,
                               all_touched: bool = False,
                               dtype: str = np.float32) -> np.ndarray:
     """
-    Takes a list of geometries and attributes to create an array. Roughly an inverse, in spirit, to `get_geopandas_features_from_array`.
-    For example, `shapes = df.geometry` and `attributes = df.label`, where df is a geopandas GeoDataFrame. We note the array is initialized
-    as array of zeros.
+    Takes a list of geometries and attributes to create an array. Roughly the
+    inverse, in spirit, to `get_geopandas_features_from_array`.  For example,
+    `shapes = df.geometry` and `attributes = df.label`, where df is a geopandas
+    GeoDataFrame. We note the array is initialized as array of zeros.
 
     Parameters
     ----------
@@ -121,11 +131,14 @@ def rasterize_shapes_to_array(shapes: list,
     attributes : list
         List of attributes corresponding to shapes.
     profile : dict
-        Rasterio profile in which shapes will be projected into, importantly the transform and dimensions specified.
+        Rasterio profile in which shapes will be projected into, importantly
+        the transform and dimensions specified.
     all_touched : bool
-        Whether factionally covered pixels are written with specific value or ignored. See `rasterio.features.rasterize`.
+        Whether factionally covered pixels are written with specific value or
+        ignored. See `rasterio.features.rasterize`.
     dtype : str
-        The initial array is np.zeros and dtype can be specified as a numpy dtype or appropriate string.
+        The initial array is np.zeros and dtype can be specified as a numpy
+        dtype or appropriate string.
 
     Returns
     -------
@@ -134,7 +147,8 @@ def rasterize_shapes_to_array(shapes: list,
     """
     out_arr = np.zeros((profile['height'], profile['width']), dtype=dtype)
 
-    # this is where we create a generator of geom, value pairs to use in rasterizing
+    # this is where we create a generator of geom, value pairs to use in
+    # rasterizing
     shapes = [(geom, value) for geom, value in zip(shapes, attributes)]
     burned = features.rasterize(shapes=shapes,
                                 out=out_arr,
@@ -148,10 +162,11 @@ def reproject_arr_to_match_profile(src_array: np.ndarray,
                                    src_profile: dict,
                                    ref_profile: dict,
                                    nodata: str = None,
-                                   resampling='bilinear') -> Tuple[np.ndarray, dict]:
+                                   resampling='bilinear') \
+                                           -> Tuple[np.ndarray, dict]:
     """
-    Reprojects an array to match a reference profile providing the reprojected array and the new profile.
-    Simply a wrapper for rasterio.warp.reproject.
+    Reprojects an array to match a reference profile providing the reprojected
+    array and the new profile.  Simply a wrapper for rasterio.warp.reproject.
 
     Parameters
     ----------
@@ -162,9 +177,9 @@ def reproject_arr_to_match_profile(src_array: np.ndarray,
     ref_profile : dict
         The profile that to reproject into.
     nodata : str
-        The nodata value to be used in output profile. If None, the nodata from src_profile is
-        used in the output profile.
-        See https://github.com/mapbox/rasterio/blob/master/rasterio/dtypes.py#L13-L24.
+        The nodata value to be used in output profile. If None, the nodata from
+        src_profile is used in the output profile.  See
+        https://github.com/mapbox/rasterio/blob/master/rasterio/dtypes.py#L13-L24.
     resampling : str
         The type of resampling to use. See all the options:
         https://github.com/mapbox/rasterio/blob/08d6634212ab131ca2a2691054108d81caa86a09/rasterio/enums.py#L28-L40
@@ -176,9 +191,10 @@ def reproject_arr_to_match_profile(src_array: np.ndarray,
 
     Notes
     -----
-    src_array needs to be in gdal (i.e. BIP) format that is (# of channels) x (vertical dim.) x (horizontal dim).
-    Also, works with arrays of the form  (vertical dim.) x (horizontal dim), but output will be:
-    1 x (vertical dim.) x (horizontal dim).
+    src_array needs to be in gdal (i.e. BIP) format that is (# of channels) x
+    (vertical dim.) x (horizontal dim).  Also, works with arrays of the form
+    (vertical dim.) x (horizontal dim), but output will be: 1 x (vertical dim.)
+    x (horizontal dim).
     """
     height, width = ref_profile['height'], ref_profile['width']
     crs = ref_profile['crs']
@@ -213,8 +229,9 @@ def get_cropped_profile(profile: dict,
                         slice_x: slice,
                         slice_y: slice) -> dict:
     """
-    This is a tool for using a reference profile and numpy slices (i.e. np.s_[start: stop]) to
-    create a new profile that is within the window of slice_x, slice_y.
+    This is a tool for using a reference profile and numpy slices (i.e.
+    np.s_[start: stop]) to create a new profile that is within the window of
+    slice_x, slice_y.
 
     Parameters
     ----------
@@ -256,7 +273,8 @@ def get_cropped_profile(profile: dict,
 
 def get_bounds_dict(profile: dict) -> dict:
     """
-    Get the dictionary with bounds in the relevant CRS with keys 'left', 'right', 'top', 'bottom'.
+    Get the dictionary with bounds in the relevant CRS with keys 'left',
+    'right', 'top', 'bottom'.
 
     Parameters
     ----------
@@ -280,9 +298,11 @@ def get_bounds_dict(profile: dict) -> dict:
 
 def reproject_profile_to_new_crs(src_profile: dict,
                                  dst_crs: str,
-                                 target_resolution: Union[float, int] = None) -> dict:
+                                 target_resolution: Union[float, int] = None)\
+                                         -> dict:
     """
-    Create a new profile into a new CRS based on a dst_crs. May specify resolution.
+    Create a new profile into a new CRS based on a dst_crs. May specify
+    resolution.
 
     Parameters
     ----------
@@ -302,20 +322,24 @@ def reproject_profile_to_new_crs(src_profile: dict,
     bounds_dict = get_bounds_dict(src_profile)
 
     src_crs = src_profile['crs']
-    dst_transform, dst_width, dst_height = calculate_default_transform(src_crs,
-                                                                       dst_crs,
-                                                                       src_profile['width'],
-                                                                       src_profile['height'],
-                                                                       **bounds_dict
-                                                                       )
+    w, h = src_profile['width'], src_profile['height']
+    dst_trans, dst_w, dst_h = calculate_default_transform(src_crs,
+                                                          dst_crs,
+                                                          w, h,
+                                                          **bounds_dict
+                                                          )
 
     if target_resolution is not None:
-        dst_transform, dst_width, dst_height = aligned_target(dst_transform, dst_width, dst_height, target_resolution)
+        tr = target_resolution
+        dst_transform, dst_width, dst_height = aligned_target(dst_trans,
+                                                              dst_w,
+                                                              dst_h,
+                                                              tr)
     reprojected_profile.update({
                                 'crs': dst_crs,
-                                'transform': dst_transform,
-                                'width': dst_width,
-                                'height': dst_height,
+                                'transform': dst_trans,
+                                'width': dst_w,
+                                'height': dst_h,
                                 })
     return reprojected_profile
 
@@ -324,7 +348,8 @@ def reproject_arr_to_new_crs(src_array: np.ndarray,
                              src_profile: dict,
                              dst_crs: str,
                              resampling: str = 'bilinear',
-                             target_resolution: float = None) -> Tuple[np.ndarray, dict]:
+                             target_resolution: float = None) -> \
+                                     Tuple[np.ndarray, dict]:
     """
     Reproject an array into a new CRS.
 
@@ -347,9 +372,14 @@ def reproject_arr_to_new_crs(src_array: np.ndarray,
     Tuple[np.ndarray, dict]:
         (reprojected_array, reprojected_profile) of data.
     """
-    reprojected_profile = reproject_profile_to_new_crs(src_profile, dst_crs, target_resolution=target_resolution)
+    tr = target_resolution
+    reprojected_profile = reproject_profile_to_new_crs(src_profile,
+                                                       dst_crs,
+                                                       target_resolution=tr)
     resampling = Resampling[resampling]
-    dst_array = np.zeros((reprojected_profile['count'], reprojected_profile['height'], reprojected_profile['width']))
+    dst_array = np.zeros((reprojected_profile['count'],
+                          reprojected_profile['height'],
+                          reprojected_profile['width']))
 
     reproject(
               # Source parameters
