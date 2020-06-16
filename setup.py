@@ -19,7 +19,6 @@ water mask'''
 setup(name='orinoco',
       version='0.1dev',
 
-      d =
       description=desc,
       long_description=long_description,
       url='tobefilledoutlatergithubthingy',
