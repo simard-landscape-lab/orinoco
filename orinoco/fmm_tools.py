@@ -17,7 +17,7 @@ def get_distance_in_channel(water_mask: np.array,
                             dx: float,
                             dy: float,
                             min_rel_area: float = 0.,
-                            apply_mask_buffer: bool = True) -> np.array:
+                            apply_mask_buffer: bool = False) -> np.array:
     """
     Obtain distance array from binary mask and initialization mask (the latter
     representing the ocean) using the fast-marching method from (Sethian,
@@ -40,18 +40,20 @@ def get_distance_in_channel(water_mask: np.array,
         Remove connected areas whose relative contiguous area is
         below this value. Defaults to 0, i.e. nothing is removed.
     apply_mask_buffer : bool
-        Whether or not to apply a 1 pixel buffer using ndimage
-        `nd.morphology.binary_dilation` prior to distance computation. Because
-        the distance requires 4-connectivity (i.e. a 4-stencil) through
-        channels such a buffer artficially permits distance computations
-        through diagonal pixels.  This is related to the problem that is
-        discussed [here](https://github.com/scikit-fmm/scikit-fmm/issues/32).
-        However such a buffer may lead to unexpected changes in channel
-        topology. We remove this buffer at the end of the distance computation
-        to avoid subsequent challenges when width is computed correctly later.
-        The buffer is removed using `nd.morphology.binary_dilation` to ensure
-        the topology of the distance computation is preserved even if it
-        ultimately changes the mask. The default value is True.
+        This is a highly experimental feature and is not recommended outside of
+        its use for validation with GRWL. It will invariably lead to some
+        unexpected results in subsequent processing. This is an artificial
+        workaround for the issue of the 4-connectivity stencil used in the
+        scikit-fmm discussed
+        [here](https://github.com/scikit-fmm/scikit-fmm/issues/32).  What will
+        be done in the future will be create an stencil for 8-connectivity.
+        This applies a 1 pixel buffer using ndimage
+        `nd.morphology.binary_dilation` prior to fmm- distance computation.
+        This artficially permits distance computations through diagonal pixels.
+        This will lead to unexpected changes in channel topology including
+        channels that are not connected in the water mask may be connected for
+        this computation (even with just a 1-pixel buffer). We remove this
+        buffer at the end reapplying the land mask. The default value is False.
 
     Returns
     -------
@@ -87,11 +89,7 @@ def get_distance_in_channel(water_mask: np.array,
     if apply_mask_buffer:
         # Ensure that the original land areas are land
         # for subsequent processing including widths
-        water_mask_e = nd.morphology.binary_erosion(water_mask_d,
-                                                    iterations=1,
-                                                    border_value=0,
-                                                    structure=np.ones((3, 3)))
-        dist_data[~water_mask_e.astype(bool)] = np.nan
+        dist_data[~water_mask.astype(bool)] = np.nan
 
     # Remove Areas that are smaller than min_rel_area of total area The ocean
     # mask and the water mask may not agree near the interface and this removes
@@ -135,7 +133,7 @@ def merge_labels_below_minsize(labels: np.array,
     Note
     ----
     Does not recursively update size and simply assigns a label to its
-    neighbor.
+    neighbor based on initialize size.
     """
     size_features = get_superpixel_area_as_features(labels)
     unique_labels = np.arange(0, labels.max() + 1)
@@ -170,7 +168,12 @@ def get_distance_segments(distance: np.array,
                           connectivity: int = 8,
                           min_size: int = 4) -> tuple:
     """
-    Obtain the segments determined by distance and threshold. UPDATE DOCSTRING
+    Obtain the segments determined by distance function and a selected pixel
+    threshold.  Specifically, let z = (x, y) be a position in our channel and
+    phi(z) be the distance function indicated in the array `distance`. Then, a
+    label `l(z)` is defined to be `floor(phi(z) / D)`, where `D = res *
+    n_pixel_threshold`. We assume that dx == dy and error will be raised if
+    not.
 
     Parameters
     ----------
@@ -201,7 +204,9 @@ def get_distance_segments(distance: np.array,
         interface determined via dist, namely those segments less than
         threshold
     """
-    threshold = min(dx, dy) * n_pixel_threshold
+    if dx != dy:
+        raise ValueError('Orinoco requires equal resolution cells')
+    threshold = dx * n_pixel_threshold
     dist_threshold = (distance / threshold)
     # We ensure that our background is 0
     dist_temp = dist_threshold + 1

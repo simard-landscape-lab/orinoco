@@ -140,7 +140,7 @@ def split_tuple_pairs(df: pd.DataFrame,
                    for (col_name, col_value) in first_row_data]
     tuple_cols = list(filter(lambda item: item[2] == tuple, column_data))
     if cols_to_ignore:
-        tuple_cols = list(filter(lambda item: (item[0] not in cols_to_ignore,
+        tuple_cols = list(filter(lambda item: item[0] not in cols_to_ignore,
                                  column_data))
 
     df_new = df.copy()

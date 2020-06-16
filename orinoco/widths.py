@@ -465,21 +465,21 @@ def _get_flow_vector_using_network(node: tuple,
 
     norms = np.linalg.norm(neighbor_vectors_stacked, axis=1)
     norms = norms.reshape((neighbor_vectors_stacked.shape[0], -1))
-    neigh_unit_vect_stacked = neighbor_vectors_stacked / norms
+    neighbor_vectors_u_stacked = neighbor_vectors_stacked / norms
 
     if top_n_neighbors:
         indices = np.argsort(norms.ravel())
         n = top_n_neighbors
         norms = norms[indices][:n]
-        neigh_unit_vect_stackeded = neigh_unit_vect_stacked[indices][:n]
+        neighbor_vectors_u_stacked = neighbor_vectors_u_stacked[indices][:n]
 
     if weighted_by_inv_distance:
         weights = 1. / ((norms)**inv_dist_power)
         weights /= np.sum(weights)
-        est_grad = np.sum(neigh_unit_vect_stackeded * weights,
+        est_grad = np.sum(neighbor_vectors_u_stacked * weights,
                           axis=0)
     else:
-        est_grad = np.mean(neigh_unit_vect_stackeded, axis=0)
+        est_grad = np.mean(neighbor_vectors_u_stacked, axis=0)
     est_grad = est_grad / np.linalg.norm(est_grad)
     return est_grad
 
