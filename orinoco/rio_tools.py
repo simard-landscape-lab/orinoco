@@ -331,10 +331,10 @@ def reproject_profile_to_new_crs(src_profile: dict,
 
     if target_resolution is not None:
         tr = target_resolution
-        dst_transform, dst_width, dst_height = aligned_target(dst_trans,
-                                                              dst_w,
-                                                              dst_h,
-                                                              tr)
+        dst_trans, dst_w, dst_h = aligned_target(dst_trans,
+                                                     dst_w,
+                                                     dst_h,
+                                                     tr)
     reprojected_profile.update({
                                 'crs': dst_crs,
                                 'transform': dst_trans,
