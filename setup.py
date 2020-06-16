@@ -13,22 +13,29 @@ except ImportError:
     with open(path.join(file_dir, 'README.md'), encoding='utf-8') as f:
         long_description = f.read()
 
+desc = '''A python library for generating a connected channel network from a
+water mask'''
 
 setup(name='orinoco',
       version='0.1dev',
 
-      description='A python library for generating a connected channel network from a water mask',
+      d =
+      description=desc,
       long_description=long_description,
       url='tobefilledoutlatergithubthingy',
 
       author='Charlie Marshak',
       author_email='charlie.z.marshak@jpl.nasa.gov',
 
-      keywords='fast marching method centerlines river network',
+      keywords='fast marching method, centerlines, delta channel network',
 
       packages=['orinoco'],  # setuptools.find_packages(exclude=['doc']),
 
       # Required Packages
-      # We assume an environment specified by requirements.txt is provided
+      # We assume an environment specified by requirements.txt is provided We
+      # could take this approach:
+      # https://github.com/scikit-image/scikit-image/blob/master/setup.py#L117-L131
+      # but rather use the requirements.txt to specify a valid environment and
+      # not muddle the installation with pip and possibly conda.
       install_requires=[],
       )

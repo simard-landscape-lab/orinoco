@@ -64,6 +64,14 @@ Open up a jupyter notebook (using `jupyter-notebook`) and navigate to `notebooks
 
 2. The `validation_with_grwl` reproduces the validation we perform in our paper. To reproduce the GRWL comparison, you will have to download some data and make sure the notebooks reference their location appropriately on your local machine. We used tile NH08 from [GRWL Database](https://zenodo.org/record/1297434#.XuK6hWpKgUE). We also use the World Water Body Dataset from [here](https://apps.gis.ucla.edu/geodata/dataset/world_water_bodies/resource/a6b40af0-84cb-40ce-b1c5-b024527a6943) as an initialization mask.
 
+# General Philosophy
+
+Our adaptation of the fast-marching method provides a new tool for understanding deltaic connectivity, but there is still a lot that can be done and improved upon. It's hard to imagine this tool alone capturing all the connectivity and channel directivity perfectly. As such, we anticipate some of the best parts of our approach will be combined with some of the approaches we cite below (or synthesized into improved methodologies) in order to provide a more comprehensive view of deltaic connectivity.
+
+This principle is also reflected in our rather simple and flat design of `orinoco`, namely, as a collection of functions modifying networkx Graphs and writing to GeoDataFrames. It is not our intention for this work to be a monolith of classes, properties, and instance functions. Rather, we hope what is presented can easily be modified and improved upon for large scale studies.
+
+In other words, remote sensing is hard!
+
 # Related Work
 
 Below are related projects and rough checklist of the products that can be extracted.
