@@ -31,22 +31,7 @@ Both of these installations are based on python 3.7+ using anaconda and conda wi
 
 
 We contributed to a GIS and remote sensing tutorial with related instructions setting up the environment [here](https://github.com/cmarshak/sari-tutorial).
-
-
-## Mac
-
-These have been tested with anaconda distribution using the conda package manager. We assume you have downloaded the repo and have your terminal open with this repo as your current working directory.
-
-1. `conda create --name orinoco_env python=3.7`
-2. `conda activate orinoco_env`
-3. `pip install -r requirements.txt`
-4. `pip install .`
-5. Ensure your python can be found by jupyter via `python -m ipykernel install --user`
-
-## Windows
-
-These have been tested with anaconda distribution using the conda package manager. We assume you have downloaded the repo and have your Anaconda prompt open with this repo as your current working directory.
-
+More explicitly, using the anaconda distribution for Mac or Windows:
 
 1. `conda create --name orinoco_env python=3.7`
 2. `conda activate orinoco_env`
@@ -54,7 +39,7 @@ These have been tested with anaconda distribution using the conda package manage
 4. `pip install .`
 5. Ensure your python can be found by jupyter via `python -m ipykernel install --user`
 
-You can make sure your installation was done correctly running `python -m "import
+You can make sure your installation was done correctly running `python -c "import orinoco"`
 
 # Example Notebooks
 
