@@ -22,15 +22,11 @@ In our jupyter notebooks, we demontrate:
 
 # Installation
 
-Both of these installations are based on python 3.7+ using anaconda and conda within a virtual environment.
-
-## Generally
+The installations are based on python 3.7+ using anaconda and conda within a virtual environment. Generally, this is accomplished as follows:
 
 1. Create a virtual environment using the `requirements.txt`
 2. Install orinoco downloading this repo and `pip install .`
 
-
-We contributed to a GIS and remote sensing tutorial with related instructions setting up the environment [here](https://github.com/cmarshak/sari-tutorial).
 More explicitly, using the anaconda distribution for Mac or Windows:
 
 1. `conda create --name orinoco_env python=3.7`
@@ -39,7 +35,7 @@ More explicitly, using the anaconda distribution for Mac or Windows:
 4. `pip install .`
 5. Ensure your python can be found by jupyter via `python -m ipykernel install --user`
 
-You can make sure your installation was done correctly running `python -c "import orinoco"`
+You can make sure your installation was done correctly running `python -c "import orinoco"` and/or running the notebooks.
 
 # Example Notebooks
 
