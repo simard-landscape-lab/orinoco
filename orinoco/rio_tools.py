@@ -47,6 +47,8 @@ def get_geopandas_features_from_array(arr: np.ndarray,
         gpd.GeoDataFrame.from_features
     """
     # see rasterio.features.shapes - needs all false values to be no data areas
+    if mask is None:
+        mask = np.zeros(arr.shape, dtype=bool)
     feature_list = list(shapes(arr,
                                mask=~mask,
                                transform=transform,
