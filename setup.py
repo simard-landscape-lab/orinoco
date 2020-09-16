@@ -21,9 +21,10 @@ setup(name='orinoco',
 
       description=desc,
       long_description=long_description,
-      url='tobefilledoutlatergithubthingy',
+      url='https://github.com/simard-landscape-lab/orinoco',
 
-      author='Charlie Marshak',
+      author='''Charlie Marshak, Marc Simard, Michael Denbina,
+                Tom Van der Stocken, Johan Nilsson''',
       author_email='charlie.z.marshak@jpl.nasa.gov',
 
       keywords='fast marching method, centerlines, delta channel network',
