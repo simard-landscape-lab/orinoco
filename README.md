@@ -76,6 +76,12 @@ Below are related projects and rough checklist of the products that can be extra
 	- [x] Centerlines
 	- [ ] Graph Structure
 
++ CMGO [[repo](https://github.com/AntoniusGolly/cmgo/tree/e9a4dbc286aff17c4d344988f0f9d8350128ce27)][[paper](https://esurf.copernicus.org/articles/5/557/2017/esurf-5-557-2017.html)] - R
+
+    - [x] Widths
+	- [x] Centerlines
+	- [ ] Graph Structure 
+
 + ChanGeom [[repo](https://www.burchfisher.com/data.html)][[paper](https://www.burchfisher.com/uploads/3/8/8/3/38838315/fisher_etal_geomorph_2013.pdf)] - Matlab
 
 	- [x] Widths
