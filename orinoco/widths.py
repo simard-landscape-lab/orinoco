@@ -729,9 +729,9 @@ def buffer_segments_with_rag(G: nx.Graph,
         neighbors = neighbor_label_dict.get(label)
         if neighbors is None:
             return GeometryCollection()
-        geometries = [segment_to_geo_dict[neighbor].buffer(1e-5)
+        geometries = [segment_to_geo_dict[neighbor].buffer(1e-9)
                       for neighbor in neighbors]
-        geometries += [segment_to_geo_dict[label].buffer(1e-5)]
+        geometries += [segment_to_geo_dict[label].buffer(1e-9)]
         merged_geometries = (unary_union(geometries))
         return merged_geometries
 
@@ -822,7 +822,9 @@ def get_geo_width_df(df_segments: gpd.GeoDataFrame,
         corresponding segment.
     """
     df_candidates = get_candidate_line_df(df_segments)
-    df_segments_b = buffer_segments_with_rag(G, df_segments, radius=radius)
+    df_segments_b = buffer_segments_with_rag(G,
+                                             df_segments,
+                                             radius=radius)
 
     width_geometries = df_candidates.geometry.intersection(df_segments_b)
     df_widths = gpd.GeoDataFrame({'label': df_segments.label,
@@ -836,10 +838,10 @@ def get_geo_width_df(df_segments: gpd.GeoDataFrame,
                                                  axis=1)
 
     df_widths['width_m'] = df_widths.geometry.length
-    df_widths = df_widths[~df_widths.geometry.is_empty].copy()
 
     # Let's make sure after all that we have all the nodes accounted for
-    assert(set(df_widths.node) == set(G.nodes))
+    # Some of the nodes may have been pruned
+    assert(set(G.nodes).issubset(set(df_widths.node)))
     return df_widths
 
 
@@ -875,9 +877,15 @@ def _update_width_geometry(row: gpd.GeoSeries) -> LineString:
         def get_segment_with_node(line_seg):
             return line_seg.buffer(1).contains(Point(node))
         filtered_lines = list(filter(get_segment_with_node, width_line))
+        # Get the first filtered line
         if filtered_lines:
             width_line = filtered_lines[0]
-    if isinstance(width_geometry, Point):
+            if isinstance(width_line, Point):
+                return LineString()
+        # Empty geometry collection
+        else:
+            width_line = LineString()
+    elif isinstance(width_geometry, Point):
         width_line = LineString()
     return width_line
 
