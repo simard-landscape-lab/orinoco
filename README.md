@@ -6,7 +6,7 @@ Orinoco is a tool to leverage python GIS tools to generate river networks from a
 
 Our journal article discussing the methodology and validation can be found [here](https://www.mdpi.com/2220-9964/9/11/658).
 
-	Marshak, C.; Simard, M.; Denbina, M.; Nilsson, J.; Van der Stocken, T. Orinoco: Retrieving a River Delta Network with the Fast Marching Method and Python. ISPRS Int. J. Geo-Inf. 2020, 9, 658.
+>> Marshak, C.; Simard, M.; Denbina, M.; Nilsson, J.; Van der Stocken, T. Orinoco: Retrieving a River Delta Network with the Fast Marching Method and Python. ISPRS Int. J. Geo-Inf. 2020, 9, 658.
 
 ## Products and Demonstrations
 
@@ -54,7 +54,7 @@ Open up a jupyter notebook (using `jupyter-notebook`) and navigate to `notebooks
 
 2. The [`notebooks/validation_with_grwl`](notebooks/validation_with_grwl) reproduces the GRWL comparison from our [article](https://www.mdpi.com/2220-9964/9/11/658). To reproduce the GRWL comparison, you will have to download some data and make sure the notebooks reference their location appropriately on your local machine. We used tile NH08 from [GRWL Database](https://zenodo.org/record/1297434#.XuK6hWpKgUE). We also use the World Water Body Dataset from [here](https://apps.gis.ucla.edu/geodata/dataset/world_water_bodies/resource/a6b40af0-84cb-40ce-b1c5-b024527a6943) as an initialization mask.
 
-3. There are notebooks in [notebooks/validation_with_rivgraph](notebooks/validation_with_rivgraph) which compares our products to those products in the RivGraph journal [article](https://esurf.copernicus.org/articles/8/87/2020/). The instructions are described in the notebooks.
+3. There are notebooks in [`notebooks/validation_with_rivgraph`](notebooks/validation_with_rivgraph) which compares our products to those products in the RivGraph journal [article](https://esurf.copernicus.org/articles/8/87/2020/). The data is included in this repository though you will again need the [World Water Body Dataset](https://apps.gis.ucla.edu/geodata/dataset/world_water_bodies/resource/a6b40af0-84cb-40ce-b1c5-b024527a6943). The instructions are described in the notebooks.
 4. There are notebooks for [comparisons with usgs](notebooks/validation_with_usgs) again using the GRWL masks. You will need to download GRWL Tiles NH15 as above from the [GRWL Database](https://zenodo.org/record/1297434#.XuK6hWpKgUE). The USGS station data can be obtained using the notebooks pulling data from USGS APIs.
 
 # General Philosophy
