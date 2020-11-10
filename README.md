@@ -4,12 +4,21 @@
 
 Orinoco is a tool to leverage python GIS tools to generate river networks from a water mask (in UTM) and a source/sink area (e.g. the ocean). We generate the river network using scikit-fmm, skimage, networkx, geopandas, shapely, etc. See example in [notebooks](notebooks) to see how these products are generated.
 
-Products:
+Our journal article discussing the methodology and validation can be found [here](https://www.mdpi.com/2220-9964/9/11/658).
+
+	Marshak, C.; Simard, M.; Denbina, M.; Nilsson, J.; Van der Stocken, T. Orinoco: Retrieving a River Delta Network with the Fast Marching Method and Python. ISPRS Int. J. Geo-Inf. 2020, 9, 658.
+
+## Products and Demonstrations
+
+### Pdocuts
 
 + A networkx directed Graph that can be used for additional analysis.
 + River Centroids and Centerlines (corresponding to the network's nodes and edges, respectively)
 
 ![example](example.png)
+
+
+### Notebooks
 
 In our jupyter notebooks, we demontrate:
 
@@ -17,7 +26,7 @@ In our jupyter notebooks, we demontrate:
 + how to obtain the channel network and related products with the software tools here
 + how to compute the normalized entropy rate over the subnetwork related to the Wax Lake Outlet
 + how to recreate our validation using the Global River Widths from Landsat (GRWL) Database
-	
++ Validating widths using GRWL water masks and USGS gauges.	
 
 
 # Installation
