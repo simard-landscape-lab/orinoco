@@ -6,7 +6,7 @@ Orinoco is a tool to leverage python GIS tools to generate river networks from a
 
 Our journal article discussing the methodology and validation can be found [here](https://www.mdpi.com/2220-9964/9/11/658).
 
->> Marshak, C.; Simard, M.; Denbina, M.; Nilsson, J.; Van der Stocken, T. Orinoco: Retrieving a River Delta Network with the Fast Marching Method and Python. ISPRS Int. J. Geo-Inf. 2020, 9, 658.
+> Marshak, C.; Simard, M.; Denbina, M.; Nilsson, J.; Van der Stocken, T. Orinoco: Retrieving a River Delta Network with the Fast Marching Method and Python. ISPRS Int. J. Geo-Inf. 2020, 9, 658.
 
 ## Products and Demonstrations
 
